@@ -70,10 +70,13 @@ router.get("/enrolled", authenticateToken, async (req, res) => {
         u."lastName"     AS "coachLastName",
         u.phone          AS "coachPhone",
         u.email          AS "coachEmail",
+        u."profileImage" AS "coachImage",
         s."dayOfWeek",
         s."startTime",
         s."endTime",
         s.location,
+        s."startDate" AS "startDate",
+        s."endDate"   AS "endDate",
         cg.fee
       FROM schedule s
       JOIN class_groups cg ON s."classId" = cg.id

@@ -10,18 +10,45 @@ router.post("/", authenticateToken, async (req, res) => {
   if (!classId) return res.status(400).json({ error: "Бүлэг сонгоно уу" });
 
   try {
-    const existing = await db.query(
-      `SELECT id FROM enrollments WHERE "userId"=$1 AND "classId"=$2 AND status IN ('pending','approved')`,
+    const approved = await db.query(
+      `SELECT id FROM enrollments WHERE "userId"=$1 AND "classId"=$2 AND status = 'approved'`,
       [req.user.id, classId]
     );
-    if (existing.rows.length > 0)
+    if (approved.rows.length > 0)
       return res.status(400).json({ error: "Та энэ бүлэгт аль хэдийн хүсэлт илгээсэн байна" });
 
+    // Upgrade any stuck pending enrollment instead of inserting a duplicate
+    const pending = await db.query(
+      `SELECT id FROM enrollments WHERE "userId"=$1 AND "classId"=$2 AND status = 'pending'`,
+      [req.user.id, classId]
+    );
+    if (pending.rows.length > 0) {
+      await db.query(
+        `UPDATE enrollments SET status='approved', "reviewedAt"=NOW() WHERE id=$1`,
+        [pending.rows[0].id]
+      );
+      return res.json({ message: "Элсэлт баталгаажлаа", enrollId: pending.rows[0].id });
+    }
+
     const result = await db.query(
-      `INSERT INTO enrollments ("userId","classId",notes) VALUES ($1,$2,$3) RETURNING id`,
+      `INSERT INTO enrollments ("userId","classId",notes,status,"reviewedAt")
+       VALUES ($1,$2,$3,'approved',NOW()) RETURNING id`,
       [req.user.id, classId, notes || null]
     );
-    res.json({ message: "Элсэлтийн хүсэлт илгээгдлээ", enrollId: result.rows[0].id });
+    res.json({ message: "Элсэлт баталгаажлаа", enrollId: result.rows[0].id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /approve-pending — bulk-approve all pending enrollments (admin)
+router.post("/approve-pending", authenticateToken, requireRole("admin"), async (req, res) => {
+  try {
+    const result = await db.query(
+      `UPDATE enrollments SET status='approved', "reviewedAt"=NOW()
+       WHERE status='pending' RETURNING id`
+    );
+    res.json({ message: `${result.rowCount} хүсэлт батлагдлаа`, count: result.rowCount });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -37,6 +64,31 @@ router.get("/my", authenticateToken, async (req, res) => {
        WHERE e."userId" = $1
        ORDER BY e."submittedAt" DESC`,
       [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /approved — all approved enrollments (admin)
+router.get("/approved", authenticateToken, requireRole("admin"), async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT e.id, e."userId", e."classId",
+              e."submittedAt", e."reviewedAt",
+              u."firstName", u."lastName", u.phone, u.email, u."profileImage",
+              cg.name        AS "className",
+              cg.level,
+              cg.fee,
+              coach."firstName" AS "coachFirstName",
+              coach."lastName"  AS "coachLastName"
+       FROM enrollments e
+       JOIN users u          ON e."userId"   = u.id
+       JOIN class_groups cg  ON e."classId"  = cg.id
+       LEFT JOIN users coach ON cg."coachId" = coach.id
+       WHERE e.status = 'approved'
+       ORDER BY cg.level, u."lastName", u."firstName"`
     );
     res.json(result.rows);
   } catch (err) {

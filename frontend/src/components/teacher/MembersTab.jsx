@@ -200,7 +200,9 @@ export default function MembersTab() {
   }
 
   const filtered = members.filter(m => {
-    const matchGroup  = groupFilter === "all" || m.level === groupFilter;
+    const matchGroup  = groupFilter === "all"
+      || m.level === groupFilter
+      || m.group === groupFilter;
     const q           = search.toLowerCase();
     const matchSearch = !q || m.firstName.toLowerCase().includes(q) || m.lastName.toLowerCase().includes(q);
     return matchGroup && matchSearch;
@@ -209,10 +211,10 @@ export default function MembersTab() {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard value={members.length}                                       label="Нийт гишүүн" color="text-white"      />
-        <StatCard value={members.filter(m => m.level === "Анхан шат").length}  label="Анхан шат"   color="text-orange-400" />
-        <StatCard value={members.filter(m => m.level === "Дунд шат").length}   label="Дунд шат"    color="text-blue-400"   />
-        <StatCard value={members.filter(m => m.level === "Ахисан шат").length} label="Ахисан шат"  color="text-purple-400" />
+        <StatCard value={members.length}                                                                              label="Нийт гишүүн" color="text-white"      />
+        <StatCard value={members.filter(m => m.level === "Анхан шат"  || m.group === "Анхан шат").length}  label="Анхан шат"   color="text-orange-400" />
+        <StatCard value={members.filter(m => m.level === "Дунд шат"   || m.group === "Дунд шат").length}   label="Дунд шат"    color="text-blue-400"   />
+        <StatCard value={members.filter(m => m.level === "Ахисан шат" || m.group === "Ахисан шат").length} label="Ахисан шат"  color="text-purple-400" />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">

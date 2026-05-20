@@ -42,6 +42,19 @@ const WEEK_DAYS    = ["Даваа", "Мягмар", "Лхагва", "Пүрэв"
 const DAY_IDX      = { "Даваа": 0, "Мягмар": 1, "Лхагва": 2, "Пүрэв": 3, "Баасан": 4, "Бямба": 5, "Ням": 6 };
 const LEVEL_ACCENT = { "Анхан шат": "orange", "Дунд шат": "blue", "Ахисан шат": "purple" };
 
+function toDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+// Normalise any date value (ISO timestamp, date string, or Date object) → "YYYY-MM-DD" or null
+function fmtDate(d) {
+  if (!d) return null;
+  const s = String(d).trim().substring(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+}
+const inRange = (s, dateStr) =>
+  (!s.startDate || dateStr >= s.startDate) &&
+  (!s.endDate   || dateStr <= s.endDate);
+
 // ── Calendar sub-components ──────────────────────────────────────────────────
 function SessionCard({ s, compact = false }) {
   const a = accentClasses[s.accent];
@@ -67,94 +80,402 @@ function SessionCard({ s, compact = false }) {
   );
 }
 
-function DayView({ sessions, todayIdx }) {
-  const todaySessions = sessions.filter(s => s.dateIdx === todayIdx);
-  const hours = Array.from({ length: 13 }, (_, i) => i + 8);
-  const toMin = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
-  const SCALE = 1.1;
+function toMin(t) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
+
+function TrainCard({ s }) {
+  const a = accentClasses[s.accent];
+  const cancelled = s.status === "cancelled";
+  const mins = toMin(s.end) - toMin(s.start);
+  const initials = s.coach ? s.coach.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase() : "?";
 
   return (
-    <div className="overflow-y-auto max-h-[520px]">
-      <div className="relative min-w-[280px]" style={{ height: `${13 * 60 * SCALE}px` }}>
-        {hours.map(h => (
-          <div key={h} className="absolute left-0 right-0 flex items-start"
-               style={{ top: `${(h - 8) * 60 * SCALE}px` }}>
-            <span className="text-gray-600 text-xs w-12 shrink-0 -mt-2.5 text-right pr-3 select-none">{h}:00</span>
+    <div className={`flex rounded-2xl overflow-hidden ${cancelled ? "opacity-60" : ""}`}>
+      <div className={`w-2 shrink-0 ${cancelled ? "bg-red-500/60" : a.dot}`} />
+      <div className="flex-1 bg-[#1c1c1c] border border-l-0 border-white/10 rounded-r-2xl px-4 py-3.5">
+        {/* Title */}
+        <div className="flex items-center justify-between mb-3">
+          <p className={`font-bold text-sm ${cancelled ? "text-gray-500 line-through" : "text-white"}`}>
+            {s.group}
+          </p>
+          {cancelled && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20 font-bold">
+              ЦУЦЛАГДСАН
+            </span>
+          )}
+        </div>
+        {/* Time connector row */}
+        <div className="flex items-center gap-3 mb-3">
+          <span className={`text-xl font-extrabold tabular-nums ${cancelled ? "text-gray-600" : "text-white"}`}>
+            {s.start}
+          </span>
+          <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
+            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border
+              ${cancelled ? "bg-gray-800 text-gray-600 border-gray-700" : `${a.bg} ${a.text} ${a.border}`}`}>
+              {mins} мин
+            </span>
+            <div className="w-full flex items-center gap-0.5">
+              <div className={`w-2 h-2 rounded-full shrink-0 ${cancelled ? "bg-gray-600" : a.dot}`} />
+              <div className={`flex-1 border-t border-dashed ${cancelled ? "border-gray-700" : "border-white/20"}`} />
+              <svg className={`w-3.5 h-3.5 shrink-0 ${cancelled ? "text-gray-600" : a.text}`}
+                fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </div>
+          </div>
+          <span className={`text-xl font-extrabold tabular-nums ${cancelled ? "text-gray-600" : "text-white"}`}>
+            {s.end}
+          </span>
+        </div>
+        {/* Info row: location | coach */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <svg className="w-3.5 h-3.5 shrink-0 text-gray-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round"
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span className="text-gray-500 text-xs truncate">{s.location}</span>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {s.coachImage ? (
+              <img src={s.coachImage} alt={s.coach}
+                className={`w-5 h-5 rounded-full object-cover border ${a.border}`} />
+            ) : (
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${a.bg} ${a.text}`}>
+                {initials}
+              </div>
+            )}
+            <span className="text-gray-400 text-xs">{s.coach}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TrainCardFull({ s, date }) {
+  const a = accentClasses[s.accent];
+  const cancelled = s.status === "cancelled";
+  const mins = toMin(s.end) - toMin(s.start);
+  const initials = s.coach ? s.coach.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase() : "?";
+
+  return (
+    <div className={`flex rounded-2xl overflow-hidden ${cancelled ? "opacity-60" : ""}`}>
+      <div className={`w-2 shrink-0 ${cancelled ? "bg-red-500/60" : a.dot}`} />
+      <div className="flex-1 bg-[#1c1c1c] border border-l-0 border-white/10 rounded-r-2xl px-4 py-3.5">
+        {/* Top row: coach avatar + name | date */}
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {s.coachImage ? (
+              <img src={s.coachImage} alt={s.coach}
+                className={`w-10 h-10 rounded-full object-cover shrink-0 border-2 ${cancelled ? "border-gray-600" : a.border}`} />
+            ) : (
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0
+                ${cancelled ? "bg-gray-800 text-gray-500 border border-gray-700" : `${a.bg} ${a.text} border ${a.border}`}`}>
+                {initials}
+              </div>
+            )}
+            <span className={`font-bold text-base leading-tight truncate ${cancelled ? "text-gray-500 line-through" : "text-white"}`}>
+              {s.coach}
+            </span>
+          </div>
+          {date && (
+            <div className="flex items-center gap-1 shrink-0">
+              <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span className="text-gray-400 text-xs font-semibold tabular-nums">{date}</span>
+            </div>
+          )}
+        </div>
+        {/* Session label */}
+        <p className={`text-xs font-semibold mb-3 ${cancelled ? "text-red-400/70" : a.text}`}>
+          {cancelled ? "ЦУЦЛАГДСАН" : `Хичээл · ${s.group}`}
+        </p>
+        {/* Time connector row */}
+        <div className="flex items-center gap-3 mb-3">
+          <span className={`text-xl font-extrabold tabular-nums ${cancelled ? "text-gray-600" : "text-white"}`}>
+            {s.start}
+          </span>
+          <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
+            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border
+              ${cancelled ? "bg-gray-800 text-gray-600 border-gray-700" : `${a.bg} ${a.text} ${a.border}`}`}>
+              {mins} мин
+            </span>
+            <div className="w-full flex items-center gap-0.5">
+              <div className={`w-2 h-2 rounded-full shrink-0 ${cancelled ? "bg-gray-600" : a.dot}`} />
+              <div className={`flex-1 border-t border-dashed ${cancelled ? "border-gray-700" : "border-white/20"}`} />
+              <svg className={`w-3.5 h-3.5 shrink-0 ${cancelled ? "text-gray-600" : a.text}`}
+                fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </div>
+          </div>
+          <span className={`text-xl font-extrabold tabular-nums ${cancelled ? "text-gray-600" : "text-white"}`}>
+            {s.end}
+          </span>
+        </div>
+        {/* Bottom: location */}
+        <div className="flex items-center gap-1.5">
+          <svg className="w-3.5 h-3.5 shrink-0 text-gray-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round"
+              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span className="text-gray-500 text-xs truncate">{s.location}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DayView({ sessions, todayIdx }) {
+  const todayStr      = toDateStr(new Date());
+  const todaySessions = [...sessions.filter(s => s.dateIdx === todayIdx && inRange(s, todayStr))]
+    .sort((a, b) => a.start.localeCompare(b.start));
+
+  const HOUR_H = 72;
+  const START_H = 7;
+  const END_H   = 23;
+  const hours   = Array.from({ length: END_H - START_H }, (_, i) => i + START_H);
+
+  const now     = new Date();
+  const nowTop  = (now.getHours() * 60 + now.getMinutes() - START_H * 60) * (HOUR_H / 60);
+  const showNow = nowTop >= 0 && nowTop <= hours.length * HOUR_H;
+
+  if (todaySessions.length === 0) return (
+    <div className="text-center py-12">
+      <p className="text-2xl mb-2"></p>
+      <p className="text-gray-600 text-sm">Өнөөдөр тренинг байхгүй</p>
+    </div>
+  );
+
+  return (
+    <div className="overflow-y-auto max-h-[580px] rounded-xl border border-white/5 bg-[#111]">
+      <div className="relative" style={{ height: `${hours.length * HOUR_H}px` }}>
+
+        {/* Hour lines */}
+        {hours.map((h, i) => (
+          <div key={h} className="absolute left-0 right-0 flex pointer-events-none"
+               style={{ top: `${i * HOUR_H}px` }}>
+            <span className="text-gray-600 text-[11px] w-12 shrink-0 -mt-2 text-right pr-3 select-none tabular-nums">
+              {String(h).padStart(2, "0")}:00
+            </span>
             <div className="flex-1 border-t border-white/5" />
           </div>
         ))}
+
+        {/* Current time indicator */}
+        {showNow && (
+          <div className="absolute left-12 right-0 flex items-center z-20 pointer-events-none"
+               style={{ top: `${nowTop}px` }}>
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500 -ml-1.5 shrink-0" />
+            <div className="flex-1 border-t-2 border-red-500" />
+          </div>
+        )}
+
+        {/* TrainCard blocks */}
         {todaySessions.map(s => {
-          const top    = (toMin(s.start) - 8 * 60) * SCALE;
-          const height = (toMin(s.end) - toMin(s.start)) * SCALE;
-          const a = accentClasses[s.accent];
+          const a         = accentClasses[s.accent];
+          const cancelled = s.status === "cancelled";
+          const top       = (toMin(s.start) - START_H * 60) * (HOUR_H / 60);
+          const height    = Math.max((toMin(s.end) - toMin(s.start)) * (HOUR_H / 60), 44);
+          const mins      = toMin(s.end) - toMin(s.start);
+          const initials  = s.coach ? s.coach.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase() : "?";
+
           return (
             <div key={s.id}
-              className={`absolute left-14 right-2 rounded-xl border px-3 py-2
-                ${s.status === "cancelled" ? "border-red-500/30 bg-red-500/5 opacity-60" : `${a.border} ${a.bg}`}`}
+              className={`absolute left-14 right-2 z-10 flex rounded-xl overflow-hidden ${cancelled ? "opacity-60" : ""}`}
               style={{ top: `${top}px`, height: `${height}px` }}>
-              <p className={`text-xs font-bold ${s.status === "cancelled" ? "text-red-400" : a.text}`}>
-                {s.start} – {s.end}
-              </p>
-              <p className="text-white text-xs font-semibold mt-0.5">{s.group}</p>
-              <p className="text-gray-500 text-[11px]">📍 {s.location}</p>
-              <p className="text-gray-500 text-[11px]">👤 {s.coach}</p>
+
+              {/* Left accent strip */}
+              <div className={`w-1.5 shrink-0 ${cancelled ? "bg-red-500/60" : a.dot}`} />
+
+              {/* Card content */}
+              <div className={`flex-1 border border-l-0 border-white/10 rounded-r-xl px-2.5 py-2 overflow-hidden flex flex-col justify-between
+                ${cancelled ? "bg-red-500/5" : a.bg}`}>
+
+                {/* Title row */}
+                <div className="flex items-center justify-between gap-1">
+                  <p className={`font-bold text-[11px] leading-tight truncate
+                    ${cancelled ? "text-gray-500 line-through" : "text-white"}`}>
+                    {s.group}
+                  </p>
+                  {cancelled && (
+                    <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20 font-bold shrink-0">
+                      ЦЦ
+                    </span>
+                  )}
+                </div>
+
+                {/* Time connector — shown if height >= 80px */}
+                {height >= 80 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-xs font-extrabold tabular-nums shrink-0
+                      ${cancelled ? "text-gray-600" : "text-white"}`}>
+                      {s.start}
+                    </span>
+                    <div className="flex-1 flex flex-col items-center gap-0.5 min-w-0">
+                      <span className={`text-[9px] font-bold px-1.5 py-px rounded-full border leading-tight
+                        ${cancelled ? "bg-gray-800 text-gray-600 border-gray-700" : `${a.text} ${a.border}`}`}>
+                        {mins}м
+                      </span>
+                      <div className="w-full flex items-center">
+                        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${cancelled ? "bg-gray-600" : a.dot}`} />
+                        <div className={`flex-1 border-t border-dashed ${cancelled ? "border-gray-700" : "border-white/20"}`} />
+                        <svg className={`w-2.5 h-2.5 shrink-0 ${cancelled ? "text-gray-600" : a.text}`}
+                          fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </div>
+                    <span className={`text-xs font-extrabold tabular-nums shrink-0
+                      ${cancelled ? "text-gray-600" : "text-white"}`}>
+                      {s.end}
+                    </span>
+                  </div>
+                )}
+
+                {/* Info row — shown if height >= 110px */}
+                {height >= 110 && (
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <svg className="w-3 h-3 shrink-0 text-gray-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round"
+                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span className="text-gray-500 text-[10px] truncate">{s.location}</span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {s.coachImage ? (
+                        <img src={s.coachImage} alt={s.coach}
+                          className={`w-4 h-4 rounded-full object-cover border ${a.border}`} />
+                      ) : (
+                        <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0 ${a.bg} ${a.text}`}>
+                          {initials}
+                        </div>
+                      )}
+                      <span className="text-gray-400 text-[10px] truncate max-w-[80px]">{s.coach}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
-        {todaySessions.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-gray-600 text-sm">Өнөөдөр тренинг байхгүй</p>
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-function WeekView({ sessions, todayIdx, weekDates }) {
+function WeekView({ sessions, todayIdx, weekDates, weekOffset, weekLabel, onPrev, onNext }) {
+  const [selDay, setSelDay] = useState(() => weekOffset === 0 ? todayIdx : 0);
+
+  useEffect(() => {
+    setSelDay(weekOffset === 0 ? todayIdx : 0);
+  }, [weekOffset, todayIdx]);
+
+  const colStr      = toDateStr(weekDates[selDay]);
+  const daySessions = sessions
+    .filter(s => s.dateIdx === selDay && inRange(s, colStr))
+    .sort((a, b) => a.start.localeCompare(b.start));
+
+
   return (
-    <div className="overflow-x-auto">
-      <div className="min-w-[560px]">
-        {/* Day headers */}
-        <div className="grid grid-cols-7 border-b border-white/10 mb-2">
-          {WEEK_DAYS.map((d, i) => {
-            const isToday = i === todayIdx;
-            return (
-              <div key={d} className="text-center py-3 px-1">
-                <p className="text-gray-500 text-xs uppercase tracking-wider">{d.slice(0, 3)}</p>
-                <div className={`mx-auto mt-1 w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold
-                  ${isToday ? "bg-orange-500 text-white" : "text-gray-300"}`}>
-                  {weekDates[i]}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        {/* Session columns */}
-        <div className="grid grid-cols-7 gap-1 min-h-[120px]">
-          {WEEK_DAYS.map((_, i) => {
-            const daySessions = sessions.filter(s => s.dateIdx === i);
-            const isToday = i === todayIdx;
-            return (
-              <div key={i} className={`space-y-1.5 px-0.5 py-1.5 rounded-xl
-                ${isToday ? "bg-orange-500/5 ring-1 ring-orange-500/20" : ""}`}>
-                {daySessions.map(s => <SessionCard key={s.id} s={s} compact />)}
-              </div>
-            );
-          })}
-        </div>
+    <div>
+      {/* Week navigation */}
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={onPrev}
+          className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10
+                     border border-white/10 text-gray-400 hover:text-white transition shrink-0">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <span className="text-white font-semibold text-sm">{weekLabel}</span>
+        <button onClick={onNext}
+          className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10
+                     border border-white/10 text-gray-400 hover:text-white transition shrink-0">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
+
+      {/* Day selector strip */}
+      <div className="grid grid-cols-7 gap-1 mb-6">
+        {WEEK_DAYS.map((d, i) => {
+          const dStr       = toDateStr(weekDates[i]);
+          const isSelected = i === selDay;
+          const isToday    = weekOffset === 0 && i === todayIdx;
+          const accents    = [...new Set(
+            sessions.filter(s => s.dateIdx === i && inRange(s, dStr)).map(s => s.accent)
+          )];
+          return (
+            <button key={i} onClick={() => setSelDay(i)}
+              className={`flex flex-col items-center py-2.5 px-1 rounded-2xl transition-all
+                ${isSelected ? "bg-white shadow-lg" : "hover:bg-white/5"}`}>
+              <span className={`text-[10px] font-semibold uppercase tracking-wide
+                ${isSelected ? "text-gray-500" : "text-gray-600"}`}>
+                {d.slice(0, 2)}
+              </span>
+              <span className={`text-base font-extrabold mt-0.5
+                ${isSelected ? "text-black" : isToday ? "text-orange-400" : "text-gray-300"}`}>
+                {weekDates[i].getDate()}
+              </span>
+              {accents.length > 0 && (
+                <div className="flex gap-0.5 mt-1">
+                  {accents.slice(0, 3).map(ac => (
+                    <span key={ac} className={`w-1 h-1 rounded-full
+                      ${isSelected ? "bg-gray-400" : accentClasses[ac]?.dot || "bg-orange-500"}`} />
+                  ))}
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Session list for selected day */}
+      {daySessions.length === 0 ? (
+        <div className="text-center py-10">
+          <p className="text-2xl mb-2"></p>
+          <p className="text-gray-600 text-sm">Тренинг байхгүй</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {daySessions.map(s => <TrainCardFull key={s.id} s={s} date={colStr} />)}
+        </div>
+      )}
     </div>
   );
 }
 
-function MonthView({ sessions, monthGrid, todayDate }) {
-  // Column index (0=Mon … 6=Sun) directly maps to dateIdx
-  const sessionIdxs   = new Set(sessions.filter(s => s.status !== "cancelled").map(s => s.dateIdx));
-  const cancelledIdxs = new Set(sessions.filter(s => s.status === "cancelled").map(s => s.dateIdx));
+function MonthView({ sessions, monthGrid, monthRef, monthLabel, todayStr, onPrev, onNext, onDayClick }) {
   const dayNames = ["Да", "Мя", "Лх", "Пү", "Ба", "Бя", "Ня"];
   return (
     <div>
+      {/* Month navigation */}
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={onPrev}
+          className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10
+                     border border-white/10 text-gray-400 hover:text-white transition shrink-0">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <span className="text-white font-semibold text-sm">{monthLabel}</span>
+        <button onClick={onNext}
+          className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10
+                     border border-white/10 text-gray-400 hover:text-white transition shrink-0">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+
       <div className="grid grid-cols-7 mb-1">
         {dayNames.map(d => (
           <div key={d} className="text-center text-xs text-gray-600 uppercase tracking-wider py-2">{d}</div>
@@ -163,36 +484,43 @@ function MonthView({ sessions, monthGrid, todayDate }) {
       {monthGrid.map((row, ri) => (
         <div key={ri} className="grid grid-cols-7">
           {row.map((day, ci) => {
-            const isToday      = day === todayDate;
-            const hasSession   = day && sessionIdxs.has(ci);
-            const hasCancelled = day && cancelledIdxs.has(ci);
+            const cellDate      = day ? new Date(monthRef.getFullYear(), monthRef.getMonth(), day) : null;
+            const cellStr       = cellDate ? toDateStr(cellDate) : "";
+            const isToday       = cellStr === todayStr;
+            const cellSessions  = day ? sessions.filter(s => s.dateIdx === ci && s.status !== "cancelled" && inRange(s, cellStr)) : [];
+            const hasCancelled  = day && sessions.some(s => s.dateIdx === ci && s.status === "cancelled" && inRange(s, cellStr));
             return (
-              <div key={ci} className={`aspect-square flex flex-col items-center justify-start pt-1.5 rounded-xl m-0.5
-                ${isToday ? "bg-orange-500/15 ring-1 ring-orange-500/30" : day ? "hover:bg-white/3" : ""}`}>
+              <button key={ci} disabled={!day}
+                onClick={() => day && onDayClick(cellDate)}
+                className={`aspect-square flex flex-col items-center justify-start pt-1.5 rounded-xl m-0.5 transition-all
+                  ${isToday  ? "bg-orange-500/15 ring-1 ring-orange-500/30" : ""}
+                  ${day      ? "hover:bg-white/5 cursor-pointer" : "cursor-default"}`}>
                 <span className={`text-sm font-semibold
                   ${day ? (isToday ? "text-orange-400" : "text-gray-300") : "text-transparent"}`}>
                   {day || "·"}
                 </span>
-                {(hasSession || hasCancelled) && (
-                  <div className="flex gap-0.5 mt-0.5">
-                    {hasSession   && <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />}
+                {(cellSessions.length > 0 || hasCancelled) && (
+                  <div className="flex gap-0.5 mt-0.5 flex-wrap justify-center">
+                    {cellSessions.map(s => (
+                      <span key={s.id} className={`w-1.5 h-1.5 rounded-full ${accentClasses[s.accent]?.dot || "bg-orange-500"}`} />
+                    ))}
                     {hasCancelled && <span className="w-1.5 h-1.5 rounded-full bg-red-400" />}
                   </div>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
       ))}
-      <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/5">
-        <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-orange-500" />
-          <span className="text-gray-500 text-xs">Тренинг</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-red-400" />
-          <span className="text-gray-500 text-xs">Цуцлагдсан</span>
-        </div>
+      <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/5 flex-wrap">
+        {Object.entries({ orange: "Анхан шат", blue: "Дунд шат", purple: "Ахисан шат" }).map(([color, label]) => (
+          <div key={color} className="flex items-center gap-1.5">
+            <span className={`w-2 h-2 rounded-full ${accentClasses[color].dot}`} />
+            <span className="text-gray-500 text-xs">{label}</span>
+          </div>
+        ))}
+        
+        
       </div>
     </div>
   );
@@ -200,25 +528,30 @@ function MonthView({ sessions, monthGrid, todayDate }) {
 
 // ── Logged-in view ───────────────────────────────────────────────────────────
 function PersonalSchedule({ user }) {
-  const [calView,   setCalView]   = useState("week");
-  const [dismissed, setDismissed] = useState([]);
-  const [sessions,  setSessions]  = useState([]);
+  const [calView,     setCalView]     = useState("week");
+  const [dismissed,   setDismissed]   = useState([]);
+  const [sessions,    setSessions]    = useState([]);
+  const [weekOffset,  setWeekOffset]  = useState(0);
+  const [monthOffset, setMonthOffset] = useState(0);
 
   useEffect(() => {
     api.get("/schedule/enrolled")
       .then(data => {
         const mapped = (Array.isArray(data) ? data : []).map(s => ({
-          id:       s.scheduleId,
-          dateIdx:  DAY_IDX[s.dayOfWeek] ?? 0,
-          start:    s.startTime,
-          end:      s.endTime,
-          location: s.location || "",
-          coach:    `${s.coachLastName}. ${s.coachFirstName}`,
-          group:    s.level,
-          status:   "active",
-          accent:   LEVEL_ACCENT[s.level] || "orange",
+          id:         s.scheduleId,
+          dateIdx:    DAY_IDX[s.dayOfWeek] ?? 0,
+          start:      s.startTime,
+          end:        s.endTime,
+          location:   s.location || "",
+          coach:      `${s.coachLastName}. ${s.coachFirstName}`,
+          coachImage: s.coachImage || null,
+          group:      s.level,
+          status:     "active",
+          accent:     LEVEL_ACCENT[s.level] || "orange",
           coachPhone: s.coachPhone || "",
           coachEmail: s.coachEmail || "",
+          startDate:  fmtDate(s.startDate),
+          endDate:    fmtDate(s.endDate),
         }));
         setSessions(mapped);
       })
@@ -230,20 +563,36 @@ function PersonalSchedule({ user }) {
   const todayIdx   = today.getDay() === 0 ? 6 : today.getDay() - 1;
   const todayDate  = today.getDate();
   const monday     = new Date(today);
-  monday.setDate(today.getDate() - todayIdx);
+  monday.setDate(today.getDate() - todayIdx + weekOffset * 7);
   const weekDates  = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday); d.setDate(monday.getDate() + i); return d.getDate();
+    const d = new Date(monday); d.setDate(monday.getDate() + i); return d;
   });
+  const sunday     = weekDates[6];
+  const weekLabel  = (() => {
+    const ms = monday.getMonth() + 1, me = sunday.getMonth() + 1;
+    const y  = monday.getFullYear();
+    if (ms !== me) return `${y} оны ${ms}/${monday.getDate()} – ${me}/${sunday.getDate()}`;
+    return `${y} оны ${ms} сарын ${monday.getDate()}–${sunday.getDate()}`;
+  })();
   const monthNames = ["1-р","2-р","3-р","4-р","5-р","6-р","7-р","8-р","9-р","10-р","11-р","12-р"];
-  const monthLabel = `${today.getFullYear()} оны ${monthNames[today.getMonth()]} сар`;
 
-  // Month grid for current month
-  const firstDay    = new Date(today.getFullYear(), today.getMonth(), 1);
-  const startOffset = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  // Month grid (navigable)
+  const monthRef    = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+  const monthLabel  = `${monthRef.getFullYear()} оны ${monthNames[monthRef.getMonth()]} сар`;
+  const startOffset = monthRef.getDay() === 0 ? 6 : monthRef.getDay() - 1;
+  const daysInMonth = new Date(monthRef.getFullYear(), monthRef.getMonth() + 1, 0).getDate();
   const cells       = [...Array(startOffset).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
   while (cells.length % 7 !== 0) cells.push(null);
   const monthGrid   = Array.from({ length: cells.length / 7 }, (_, i) => cells.slice(i * 7, i * 7 + 7));
+
+  const goToWeekOf = (date) => {
+    const di = date.getDay() === 0 ? 6 : date.getDay() - 1;
+    const clickedMon = new Date(date); clickedMon.setDate(date.getDate() - di);
+    const todayMon   = new Date(today); todayMon.setDate(today.getDate() - todayIdx);
+    const diff = Math.round((clickedMon - todayMon) / (7 * 86400000));
+    setWeekOffset(diff);
+    setCalView("week");
+  };
 
   // Derive unique coaches from sessions
   const coaches = Object.values(
@@ -257,8 +606,8 @@ function PersonalSchedule({ user }) {
 
   const calTabs = [
     { key: "day",   label: "Өдрөөр"     },
-    { key: "week",  label: "7 хоногийн" },
-    { key: "month", label: "Сарын"      },
+    { key: "week",  label: "7 хоног" },
+    { key: "month", label: "Сараар"      },
   ];
 
   return (
@@ -317,8 +666,8 @@ function PersonalSchedule({ user }) {
           {/* Calendar header */}
           <div className="px-6 py-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-white font-bold">Хичээлийн хуваарь</h3>
-              <p className="text-gray-600 text-xs mt-0.5">{monthLabel}</p>
+              <h3 className="text-white font-bold">Хичээлийн хуваарь </h3>
+             
             </div>
             {/* View tabs */}
             <div className="flex gap-1 bg-black/30 p-1 rounded-xl border border-white/5 self-start sm:self-auto">
@@ -336,8 +685,8 @@ function PersonalSchedule({ user }) {
 
           <div className="p-6">
             {calView === "day"   && <DayView   sessions={sessions} todayIdx={todayIdx} />}
-            {calView === "week"  && <WeekView  sessions={sessions} todayIdx={todayIdx} weekDates={weekDates} />}
-            {calView === "month" && <MonthView sessions={sessions} monthGrid={monthGrid} todayDate={todayDate} />}
+            {calView === "week"  && <WeekView  sessions={sessions} todayIdx={todayIdx} weekDates={weekDates} weekOffset={weekOffset} weekLabel={weekLabel} onPrev={() => setWeekOffset(p => p - 1)} onNext={() => setWeekOffset(p => p + 1)} />}
+            {calView === "month" && <MonthView sessions={sessions} monthGrid={monthGrid} monthRef={monthRef} monthLabel={monthLabel} todayStr={toDateStr(today)} onPrev={() => setMonthOffset(p => p - 1)} onNext={() => setMonthOffset(p => p + 1)} onDayClick={goToWeekOf} />}
           </div>
         </div>
 
@@ -347,38 +696,17 @@ function PersonalSchedule({ user }) {
             <h3 className="text-white font-bold">Өнөөдрийн тренинг</h3>
             <p className="text-gray-600 text-xs mt-0.5">{WEEK_DAYS[todayIdx]}</p>
           </div>
-          <div className="divide-y divide-white/5">
-            {sessions.filter(s => s.dateIdx === todayIdx).map(s => {
-              const a = accentClasses[s.accent];
-              const cancelled = s.status === "cancelled";
-              return (
-                <div key={s.id} className="px-6 py-4 flex items-center gap-4">
-                  <div className={`w-1 self-stretch rounded-full shrink-0 ${cancelled ? "bg-red-400" : a.dot}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className={`font-semibold text-sm ${cancelled ? "text-gray-500 line-through" : "text-white"}`}>
-                        {s.group}
-                      </p>
-                      {cancelled && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20 font-bold">
-                          ЦУЦЛАГДСАН
-                        </span>
-                      )}
-                    </div>
-                    <p className={`text-xs mt-0.5 ${cancelled ? "text-gray-600" : "text-gray-400"}`}>
-                      🕘 {s.start} – {s.end}
-                    </p>
-                    <p className="text-gray-500 text-xs">📍 {s.location} · 👤 {s.coach}</p>
-                  </div>
-                  <div className={`text-xs font-bold px-3 py-1 rounded-full border
-                    ${cancelled
-                      ? "text-red-400 bg-red-500/10 border-red-500/20"
-                      : `${a.text} ${a.bg} ${a.border}`}`}>
-                    {cancelled ? "Цуцлагдсан" : "Идэвхтэй"}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="p-4 space-y-3">
+            {sessions.filter(s => s.dateIdx === todayIdx && inRange(s, toDateStr(today))).length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-2xl mb-2">📅</p>
+                <p className="text-gray-600 text-sm">Өнөөдөр тренинг байхгүй</p>
+              </div>
+            ) : sessions
+                .filter(s => s.dateIdx === todayIdx && inRange(s, toDateStr(today)))
+                .sort((a, b) => a.start.localeCompare(b.start))
+                .map(s => <TrainCard key={s.id} s={s} />)
+            }
           </div>
         </div>
 

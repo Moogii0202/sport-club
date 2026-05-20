@@ -51,7 +51,7 @@ const IconLevels = () => (
 );
 
 const TABS = [
-  { key: "enrollments",   label: "Элсэлтийн хүсэлт", icon: <IconEnrollment /> },
+  { key: "enrollments",   label: "Элсэгчид",           icon: <IconEnrollment /> },
   { key: "coaches",       label: "Багш удирдлага",    icon: <IconCoach />      },
   { key: "users",         label: "Хэрэглэгчид",       icon: <IconUsers />      },
   { key: "halls",         label: "Заал",               icon: <IconHall />       },

@@ -319,15 +319,7 @@ function Profile({ user, onUpdate, onLogout }) {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
-      {/* Header */}
-      <section className="bg-[#0d0d0d] border-b border-white/10 py-10">
-        <div className="max-w-5xl mx-auto px-4">
-          <h1 className="text-3xl font-extrabold text-white mb-1">
-            Миний <span className="text-orange-500">профайл</span>
-          </h1>
-          <p className="text-gray-500 text-sm">Хувийн мэдээлэл болон тренингийн хуваарь</p>
-        </div>
-      </section>
+      
 
       <div className="max-w-5xl mx-auto px-4 py-10 space-y-8">
 
@@ -336,37 +328,40 @@ function Profile({ user, onUpdate, onLogout }) {
 
           {/* Left panel */}
           <div className="space-y-4">
-            <div className="bg-[#151515] rounded-2xl border border-white/5 p-6 flex flex-col items-center text-center">
-              <div className="relative mb-4">
-                <div className="w-24 h-24 rounded-2xl overflow-hidden bg-orange-500/20 border border-orange-500/30
-                                flex items-center justify-center">
-                  {imgPreview
-                    ? <img src={imgPreview} alt="avatar" className="w-full h-full object-cover" />
-                    : <span className="text-orange-400 font-bold text-3xl">{initials || "U"}</span>}
+            <div className="bg-[#151515] rounded-2xl border border-white/5 overflow-hidden text-center">
+              <div className="flex flex-col items-center px-6 pt-6 pb-6">
+                <div className="relative mb-4">
+                  <div className="w-32 h-32 rounded-2xl overflow-hidden bg-orange-500/20
+                                  border-4 border-[#151515] ring-2 ring-orange-500/40
+                                  flex items-center justify-center shadow-2xl">
+                    {imgPreview
+                      ? <img src={imgPreview} alt="avatar" className="w-full h-full object-cover" />
+                      : <span className="text-orange-400 font-bold text-4xl">{initials || "U"}</span>}
+                  </div>
+                  <button onClick={() => fileRef.current?.click()}
+                    className="absolute -bottom-2 -right-2 w-8 h-8 bg-orange-500 rounded-xl
+                               flex items-center justify-center hover:bg-orange-600 transition shadow-lg">
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round"
+                        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </button>
+                  <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                 </div>
-                <button onClick={() => fileRef.current?.click()}
-                  className="absolute -bottom-2 -right-2 w-8 h-8 bg-orange-500 rounded-xl
-                             flex items-center justify-center hover:bg-orange-600 transition shadow-lg">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round"
-                      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </button>
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                <p className="text-white font-bold text-lg leading-tight">{user?.firstName} {user?.lastName}</p>
+                <span className={`inline-block mt-2 text-xs px-3 py-1 rounded-full border font-medium ${roleColor[role]}`}>
+                  {roleLabel[role]}
+                </span>
+                {imgPreview && imgPreview !== (user?.profileImage || null) && (
+                  <button onClick={handleImgSave} disabled={imgLoading}
+                    className="mt-4 w-full py-2 text-sm bg-orange-500 text-white rounded-xl
+                               hover:bg-orange-600 transition font-medium disabled:opacity-50">
+                    {imgLoading ? "Хадгалж байна..." : "Зураг хадгалах"}
+                  </button>
+                )}
+                <Alert msg={imgMsg} />
               </div>
-              <p className="text-white font-bold text-lg leading-tight">{user?.firstName} {user?.lastName}</p>
-              <span className={`inline-block mt-2 text-xs px-3 py-1 rounded-full border font-medium ${roleColor[role]}`}>
-                {roleLabel[role]}
-              </span>
-              {imgPreview && imgPreview !== (user?.profileImage || null) && (
-                <button onClick={handleImgSave} disabled={imgLoading}
-                  className="mt-4 w-full py-2 text-sm bg-orange-500 text-white rounded-xl
-                             hover:bg-orange-600 transition font-medium disabled:opacity-50">
-                  {imgLoading ? "Хадгалж байна..." : "Зураг хадгалах"}
-                </button>
-              )}
-              <Alert msg={imgMsg} />
             </div>
 
             <div className="bg-[#151515] rounded-2xl border border-white/5 p-5 space-y-3">
@@ -406,10 +401,19 @@ function Profile({ user, onUpdate, onLogout }) {
                   { label: "И-мэйл",        name: "email",     type: "email" },
                   { label: "Төрсөн огноо",  name: "birthDate", type: "date"  },
                 ].map(f => (
-                  <div key={f.name}>
+                  <div key={f.name} className="min-w-0">
                     <label className={labelCls}>{f.label}</label>
-                    <input name={f.name} type={f.type} value={formData[f.name]}
-                      onChange={handleInfoChange} className={inputCls} />
+                    {f.type === "date" ? (
+                      <div className="relative h-[50px] bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden
+                                      focus-within:ring-1 focus-within:ring-orange-500/30 focus-within:border-orange-500/50 transition">
+                        <input name={f.name} type="date" value={formData[f.name]}
+                          onChange={handleInfoChange}
+                          className="absolute inset-0 w-full h-full px-4 bg-transparent text-white text-sm outline-none [color-scheme:dark] appearance-none" />
+                      </div>
+                    ) : (
+                      <input name={f.name} type={f.type} value={formData[f.name]}
+                        onChange={handleInfoChange} className={`${inputCls} max-w-full`} />
+                    )}
                   </div>
                 ))}
                 <div>

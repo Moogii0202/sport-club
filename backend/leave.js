@@ -11,7 +11,7 @@ router.get("/", authenticateToken, async (req, res) => {
       SELECT
         lr.id,
         lr."classId",
-        lr.date,
+        TO_CHAR(lr.date::date, 'YYYY-MM-DD') AS date,
         lr.reason,
         lr.status,
         lr."createdAt",
@@ -23,7 +23,21 @@ router.get("/", authenticateToken, async (req, res) => {
         s."dayOfWeek"
       FROM leave_requests lr
       JOIN class_groups cg ON lr."classId" = cg.id
-      LEFT JOIN schedule s  ON s."classId" = cg.id
+      LEFT JOIN LATERAL (
+        SELECT "startTime", "endTime", location, "dayOfWeek"
+        FROM schedule
+        WHERE "classId" = cg.id
+          AND "dayOfWeek" = CASE EXTRACT(DOW FROM lr.date::date)
+            WHEN 1 THEN 'Даваа'
+            WHEN 2 THEN 'Мягмар'
+            WHEN 3 THEN 'Лхагва'
+            WHEN 4 THEN 'Пүрэв'
+            WHEN 5 THEN 'Баасан'
+            WHEN 6 THEN 'Бямба'
+            WHEN 0 THEN 'Ням'
+          END
+        LIMIT 1
+      ) s ON true
       WHERE lr."userId" = $1
       ORDER BY lr.date DESC, lr."createdAt" DESC
     `, [req.user.id]);
@@ -39,7 +53,26 @@ router.post("/", authenticateToken, async (req, res) => {
   if (!classId || !date)
     return res.status(400).json({ error: "Хичээл болон огноо заавал шаардлагатай" });
 
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  if (new Date(date) < today)
+    return res.status(400).json({ error: "Өнгөрсөн өдрийн хүсэлт илгээх боломжгүй" });
+
   try {
+    // If today, check the class start time has not passed
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
+    if (date === todayStr) {
+      const schedRow = await db.query(
+        `SELECT "startTime" FROM schedule WHERE "classId" = $1 LIMIT 1`,
+        [classId]
+      );
+      if (schedRow.rows.length) {
+        const [sh, sm] = schedRow.rows[0].startTime.split(":").map(Number);
+        const now = new Date();
+        if (now.getHours() * 60 + now.getMinutes() >= sh * 60 + sm)
+          return res.status(400).json({ error: "Хичээл эхэлсэн тул хүсэлт илгээх боломжгүй" });
+      }
+    }
+
     // Verify the player is enrolled in this class
     const enrolled = await db.query(`
       SELECT id FROM enrollments
@@ -78,7 +111,7 @@ router.get("/coach", authenticateToken, async (req, res) => {
       SELECT
         lr.id,
         lr."classId",
-        lr.date,
+        TO_CHAR(lr.date::date, 'YYYY-MM-DD') AS date,
         lr.reason,
         lr.status,
         lr."createdAt",

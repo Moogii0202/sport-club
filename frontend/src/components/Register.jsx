@@ -135,22 +135,32 @@ function Register() {
                 onChange={handleChange} className={inputCls} />
             </div>
 
-            {/* Огноо, Хүйс */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1.5">Төрсөн огноо</label>
+            {/* Огноо */}
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1.5">Төрсөн огноо</label>
+              <div className="relative h-[50px] bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden
+                              focus-within:ring-2 focus-within:ring-orange-500/50 focus-within:border-orange-500/50 transition">
                 <input name="birthDate" type="date" value={formData.birthDate}
                   onChange={handleChange}
-                  className={`${inputCls} [color-scheme:dark]`} />
+                  className="absolute inset-0 w-full h-full px-4 bg-transparent text-white text-sm outline-none [color-scheme:dark] appearance-none" />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1.5">Хүйс</label>
+            </div>
+
+            {/* Хүйс */}
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1.5">Хүйс</label>
+              <div className="relative">
                 <select name="gender" value={formData.gender} onChange={handleChange}
-                  className={inputCls}>
+                  className={`${inputCls} appearance-none pr-10 cursor-pointer`}>
                   <option value="" className="bg-[#1a1a1a]">Сонгох</option>
                   <option value="male" className="bg-[#1a1a1a]">Эрэгтэй</option>
                   <option value="female" className="bg-[#1a1a1a]">Эмэгтэй</option>
                 </select>
+                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
             </div>
 
@@ -162,7 +172,7 @@ function Register() {
             </div>
 
             {/* Нууц үг */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-1.5">Нууц үг *</label>
                 <input name="password" type="password" placeholder="6+ тэмдэгт"

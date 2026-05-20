@@ -19,7 +19,7 @@ function fmtDate(d) {
   return d;
 }
 
-const STEP_LABELS = ["Түвшин сонгох", "Хуваарь сонгох", "Баталгаажуулах", "Илгээх"];
+const STEP_LABELS = ["Түвшин сонгох", "Хуваарь сонгох", "Баталгаажуулах", "Төлбөр хийх"];
 
 /* ── Helpers ── */
 const accentClasses = {
@@ -251,8 +251,8 @@ function Step2({ levels, levelName, dbSlots, slotsLoading, selectedClassId, onSe
   );
 }
 
-/* ── Step 3: Баталгаажуулах + Илгээх ── */
-function Step3({ levels, user, levelName, dbSlots, selectedClassId, notes, setNotes, onSubmit, onBack, loading, error }) {
+/* ── Step 3: Баталгаажуулах ── */
+function Step3({ levels, user, levelName, dbSlots, selectedClassId, notes, setNotes, onNext, onBack }) {
   const level = levels.find((l) => l.name === levelName);
   const ac    = getAccent(level?.accent);
   const chosenSlots = dbSlots.filter((s) => s.classId === selectedClassId);
@@ -388,14 +388,152 @@ function Step3({ levels, user, levelName, dbSlots, selectedClassId, notes, setNo
               <div className="flex items-start gap-3 bg-white/5 rounded-xl border border-white/10 p-4">
                 <span className="text-xl shrink-0">ℹ️</span>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  Хүсэлт илгээсний дараа <span className="text-white font-medium">админ хянаж баталгаажуулна.</span>{" "}
-                  Баталгаажсан тохиолдолд и-мэйлээр мэдэгдэл хүлээн авна.
+                  Мэдээллээ шалгаад дараагийн алхамд{" "}
+                  <span className="text-white font-medium">төлбөрөө хийнэ үү.</span>{" "}
+                  Төлбөр баталгаажмагц таны элсэлт шууд идэвхжинэ.
                 </p>
               </div>
             </>
           )}
         </div>
       </div>
+
+      <div className="flex justify-between">
+        <button onClick={onBack}
+          className="px-6 py-3 border border-white/20 text-gray-400 font-medium rounded-full
+                     hover:border-white/40 hover:text-white transition flex items-center gap-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Буцах
+        </button>
+        {user && (
+          <button onClick={onNext}
+            className="px-10 py-3 bg-orange-500 text-white font-bold rounded-full
+                       hover:bg-orange-600 transition flex items-center gap-2">
+            Төлбөр хийх
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Step 4: Төлбөр хийх ── */
+const PAYMENT_METHODS = [
+  { id: "qpay",       label: "QPay",       icon: "📱" },
+  { id: "socialpay",  label: "SocialPay",  icon: "💳" },
+  { id: "cash",       label: "Бэлэн мөнгө", icon: "💵" },
+];
+
+function Step4({ levels, levelName, dbSlots, selectedClassId, paymentMethod, setPaymentMethod, onSubmit, onBack, loading, error }) {
+  const level      = levels.find((l) => l.name === levelName);
+  const ac         = getAccent(level?.accent);
+  const chosenSlots = dbSlots.filter((s) => s.classId === selectedClassId);
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold text-white mb-2">Төлбөр хийх</h2>
+      <p className="text-gray-500 text-sm mb-8">Төлбөрийн аргаа сонгоод баталгаажуулна уу</p>
+
+      {/* Дүнгийн хураангуй */}
+      <div className={`rounded-2xl border p-5 mb-6 ${ac.border} ${ac.bg}`}>
+        <p className="text-gray-400 text-xs uppercase tracking-widest mb-3">Төлөх дүн</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className={`font-bold text-lg ${ac.text}`}>{level?.name}</p>
+            <p className="text-gray-500 text-sm mt-0.5">
+              {chosenSlots.map(s => `${s.dayOfWeek} ${s.startTime}–${s.endTime}`).join("  ·  ")}
+            </p>
+          </div>
+          <p className={`text-2xl font-extrabold ${ac.text}`}>{fmtFee(level?.fee)}</p>
+        </div>
+      </div>
+
+      {/* Аргын сонголт */}
+      <p className="text-gray-400 text-sm font-medium mb-3">Төлбөрийн арга</p>
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        {PAYMENT_METHODS.map((m) => (
+          <button key={m.id} onClick={() => setPaymentMethod(m.id)}
+            className={`rounded-2xl border p-4 flex flex-col items-center gap-2 transition-all
+              ${paymentMethod === m.id
+                ? "border-orange-500 bg-orange-500/10 ring-2 ring-orange-500/30"
+                : "border-white/10 bg-[#151515] hover:border-white/20"}`}>
+            <span className="text-2xl">{m.icon}</span>
+            <span className={`text-sm font-semibold ${paymentMethod === m.id ? "text-orange-400" : "text-gray-300"}`}>
+              {m.label}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Арга тус бүрийн дэлгэрэнгүй */}
+      {paymentMethod === "qpay" && (
+        <div className="rounded-2xl border border-white/10 bg-[#151515] p-6 mb-6 flex flex-col items-center gap-4">
+          <p className="text-gray-400 text-sm">QPay QR кодыг уншуулна уу</p>
+          <div className="w-40 h-40 bg-white rounded-2xl flex items-center justify-center">
+            <span className="text-gray-400 text-xs text-center px-2">QR код энд харагдана</span>
+          </div>
+          <p className="text-gray-600 text-xs">QPay апп нээж QR уншуулаарай</p>
+        </div>
+      )}
+
+      {paymentMethod === "socialpay" && (
+        <div className="rounded-2xl border border-[#0066CC]/30 bg-[#0066CC]/5 p-6 mb-6 space-y-4">
+          {/* Header */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#0066CC]/20 border border-[#0066CC]/30
+                            flex items-center justify-center shrink-0 text-lg">
+              💳
+            </div>
+            <div>
+              <p className="text-white font-bold text-sm">SocialPay — Хаан банк шилжүүлэг</p>
+              <p className="text-gray-500 text-xs">Доорх данс руу шилжүүлэнэ үү</p>
+            </div>
+          </div>
+
+          {/* Account details */}
+          <div className="bg-[#0a0a0a] rounded-xl border border-white/10 divide-y divide-white/5">
+            {[
+              { label: "Банк",            value: "Хаан банк (SocialPay)" },
+              { label: "Дансны дугаар",   value: "5000 1234 5678",        copy: true },
+              { label: "Хүлээн авагч",    value: "Спорт клуб ХХК" },
+              { label: "Дүн",             value: `${(level?.fee || 0).toLocaleString()}₮`, highlight: true },
+              { label: "Гүйлгээний утга", value: `${levelName} · сарын хураамж`, copy: true },
+            ].map(r => (
+              <div key={r.label} className="flex items-center justify-between px-4 py-2.5 gap-4">
+                <span className="text-gray-500 text-xs shrink-0">{r.label}</span>
+                <span className={`text-sm font-semibold text-right ${r.highlight ? "text-[#4DA6FF]" : "text-white"}`}>
+                  {r.value}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-gray-600 text-xs text-center">
+            Шилжүүлэг хийсний дараа "Баталгаажуулах" товчийг дарна уу
+          </p>
+        </div>
+      )}
+
+      {paymentMethod === "cash" && (
+        <div className="rounded-2xl border border-white/10 bg-[#151515] p-5 mb-6 space-y-3">
+          <p className="text-gray-400 text-sm font-medium">Бэлэн мөнгөөр төлөх заавар</p>
+          {[
+            { label: "Байршил",    value: "Спорт клубын бүртгэлийн тасаг" },
+            { label: "Цагийн хуваарь", value: "Даваа–Баасан, 09:00–18:00" },
+            { label: "Утас",       value: "+976 9900-0000" },
+          ].map((r) => (
+            <div key={r.label} className="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
+              <span className="text-gray-500 text-sm">{r.label}</span>
+              <span className="text-white text-sm font-medium">{r.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-xl">
@@ -404,42 +542,45 @@ function Step3({ levels, user, levelName, dbSlots, selectedClassId, notes, setNo
       )}
 
       <div className="flex justify-between">
-        <button
-          onClick={onBack}
+        <button onClick={onBack}
           className="px-6 py-3 border border-white/20 text-gray-400 font-medium rounded-full
-                     hover:border-white/40 hover:text-white transition flex items-center gap-2"
-        >
+                     hover:border-white/40 hover:text-white transition flex items-center gap-2">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
           Буцах
         </button>
-        {user && (
-          <button
-            onClick={onSubmit}
-            disabled={loading}
-            className="px-10 py-3 bg-orange-500 text-white font-bold rounded-full
-                       hover:bg-orange-600 transition disabled:opacity-60 disabled:cursor-not-allowed
-                       flex items-center gap-2"
-          >
-            {loading ? (
-              <>
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
-                Илгээж байна...
-              </>
-            ) : (
-              <>
-                Хүсэлт илгээх
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </>
-            )}
-          </button>
-        )}
+        <button onClick={onSubmit} disabled={!paymentMethod || loading}
+          className={`px-10 py-3 text-white font-bold rounded-full
+                     transition disabled:opacity-40 disabled:cursor-not-allowed
+                     flex items-center gap-2
+                     ${paymentMethod === "socialpay"
+                       ? "bg-[#0066CC] hover:bg-[#0055AA]"
+                       : "bg-orange-500 hover:bg-orange-600"}`}>
+          {loading ? (
+            <>
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+              Нэвтэрч байна...
+            </>
+          ) : paymentMethod === "socialpay" ? (
+            <>
+              Шилжүүлэг хийлээ — Баталгаажуулах
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </>
+          ) : (
+            <>
+              Төлбөр баталгаажуулах
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
@@ -456,12 +597,13 @@ function Submitted({ levels, levelId: levelName, onReset }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 className="text-3xl font-bold text-white mb-3">Хүсэлт илгээгдлээ!</h2>
+        <h2 className="text-3xl font-bold text-white mb-3">Элсэлт баталгаажлаа!</h2>
         <p className="text-gray-400 leading-relaxed mb-2">
-          <span className="text-orange-400 font-semibold">{level?.name}</span> бүлэгт элсэх хүсэлт амжилттай хүлээн авлаа.
+          Төлбөр хийгдсэн тул <span className="text-orange-400 font-semibold">{level?.name}</span> бүлэгт
+          амжилттай элслээ.
         </p>
         <p className="text-gray-500 text-sm mb-8">
-          Админ хянаж баталгаажуулсны дараа и-мэйлээр мэдэгдэл илгээнэ.
+          Хичээлийн хуваарийг профайл хэсгээс харна уу.
         </p>
         <div className="flex justify-center gap-3">
           <button
@@ -526,6 +668,7 @@ function Enrollment({ user }) {
   const [selectedLevel,   setSelectedLevel]   = useState(null); // level name string
   const [selectedClassId, setSelectedClassId] = useState(null); // DB class_group id
   const [notes,           setNotes]           = useState("");
+  const [paymentMethod,   setPaymentMethod]   = useState(null);
   const [loading,         setLoading]         = useState(false);
   const [error,           setError]           = useState("");
   const [submitted,       setSubmitted]       = useState(false);
@@ -548,9 +691,9 @@ function Enrollment({ user }) {
     setError("");
     setLoading(true);
     try {
+      // Record enrollment (approved immediately)
       await api.post("/enrollments", { classId: selectedClassId, notes });
       setSubmitted(true);
-      setStep(4);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -563,6 +706,7 @@ function Enrollment({ user }) {
     setSelectedLevel(null);
     setSelectedClassId(null);
     setNotes("");
+    setPaymentMethod(null);
     setError("");
     setSubmitted(false);
   };
@@ -602,7 +746,7 @@ function Enrollment({ user }) {
             onNext={() => setStep(3)}
             onBack={() => setStep(1)}
           />
-        ) : (
+        ) : step === 3 ? (
           <Step3
             levels={levels}
             user={user}
@@ -611,8 +755,19 @@ function Enrollment({ user }) {
             selectedClassId={selectedClassId}
             notes={notes}
             setNotes={setNotes}
-            onSubmit={handleSubmit}
+            onNext={() => setStep(4)}
             onBack={() => setStep(2)}
+          />
+        ) : (
+          <Step4
+            levels={levels}
+            levelName={selectedLevel}
+            dbSlots={dbSlots}
+            selectedClassId={selectedClassId}
+            paymentMethod={paymentMethod}
+            setPaymentMethod={setPaymentMethod}
+            onSubmit={handleSubmit}
+            onBack={() => setStep(3)}
             loading={loading}
             error={error}
           />

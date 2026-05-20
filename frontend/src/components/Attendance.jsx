@@ -1,73 +1,116 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../api/api";
 
-const PER_PAGE = 6;
+const PER_PAGE  = 8;
+const MN_MONTHS = ["1-р","2-р","3-р","4-р","5-р","6-р","7-р","8-р","9-р","10-р","11-р","12-р"];
+const MN_DAYS   = ["Ням","Даваа","Мягмар","Лхагва","Пүрэв","Баасан","Бямба"];
 
-const statusCfg = {
-  present: { label: "Цагтаа",   cls: "text-green-400 bg-green-500/10 border-green-500/20"  },
-  late:    { label: "Хоцорсон", cls: "text-amber-400 bg-amber-500/10 border-amber-500/20"  },
-  absent:  { label: "Тасалсан", cls: "text-red-400   bg-red-500/10   border-red-500/20"    },
+const STATUS_CFG = {
+  present: {
+    label: "Ирсэн",
+    strip:  "bg-green-500",
+    banner: "bg-green-500/5  border-green-500/15 text-green-400",
+    badge:  "bg-green-500/10  text-green-400  border-green-500/20",
+    icon: (
+      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+      </svg>
+    ),
+  },
+  late: {
+    label: "Хоцорсон",
+    strip:  "bg-amber-400",
+    banner: "bg-amber-500/5  border-amber-500/15 text-amber-400",
+    badge:  "bg-amber-500/10  text-amber-400  border-amber-500/20",
+    icon: (
+      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/><path strokeLinecap="round" d="M12 6v6l4 2"/>
+      </svg>
+    ),
+  },
+  absent: {
+    label: "Тасалсан",
+    strip:  "bg-red-500",
+    banner: "bg-red-500/5    border-red-500/15    text-red-400",
+    badge:  "bg-red-500/10    text-red-400    border-red-500/20",
+    icon: (
+      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    ),
+  },
 };
 
+function parseDate(str) {
+  if (!str || str === "—") return null;
+  const m = String(str).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+
 function avgTime(records, field) {
-  const valid = records.filter(r => r[field] !== "—");
+  const valid = records.filter(r => r[field] && r[field] !== "—");
   if (!valid.length) return "—";
   const total = valid.reduce((sum, r) => {
-    const [h, m] = r[field].split(":").map(Number);
-    return sum + h * 60 + m;
+    const [h, mn] = r[field].split(":").map(Number);
+    return sum + h * 60 + mn;
   }, 0);
   const avg = Math.round(total / valid.length);
   return `${String(Math.floor(avg / 60)).padStart(2, "0")}:${String(avg % 60).padStart(2, "0")}`;
 }
 
-// ── Icons ──────────────────────────────────────────────────────────────────
-const ClockInIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round"
-      d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-  </svg>
-);
-const ClockOutIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round"
-      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-  </svg>
-);
-const AttendanceIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round"
-      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-  </svg>
-);
-const StarIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round"
-      d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-  </svg>
-);
-const GridIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round"
-      d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-  </svg>
-);
-const ListIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-  </svg>
-);
-const ClockIcon = () => (
-  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
+// ── Circular progress ring ────────────────────────────────────────────────────
+function RingChart({ pct, present, late, absent, total }) {
+  const R   = 52;
+  const C   = 2 * Math.PI * R;
+  const gap = 4;
 
-// ── Main ───────────────────────────────────────────────────────────────────
+  const segments = [
+    { val: present, color: "#22c55e" },
+    { val: late,    color: "#fbbf24" },
+    { val: absent,  color: "#ef4444" },
+  ].filter(s => s.val > 0);
+
+  let offset = 0;
+  const arcs = segments.map(s => {
+    const len   = total ? (s.val / total) * (C - gap * segments.length) : 0;
+    const arc   = { ...s, offset, len };
+    offset += len + gap;
+    return arc;
+  });
+
+  return (
+    <div className="flex flex-col items-center justify-center">
+      <div className="relative w-32 h-32">
+        <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r={R} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="10" />
+          {total === 0 ? (
+            <circle cx="60" cy="60" r={R} fill="none" stroke="rgba(255,255,255,0.1)"
+              strokeWidth="10" strokeDasharray={`${C} ${C}`} strokeDashoffset="0" />
+          ) : arcs.map((a, i) => (
+            <circle key={i} cx="60" cy="60" r={R} fill="none"
+              stroke={a.color} strokeWidth="10"
+              strokeDasharray={`${a.len} ${C - a.len}`}
+              strokeDashoffset={-a.offset}
+              strokeLinecap="round" />
+          ))}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-white font-extrabold text-2xl leading-none">{pct}%</span>
+          <span className="text-gray-500 text-[10px] mt-0.5">ирц</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main ───────────────────────────────────────────────────────────────────────
 function Attendance({ user }) {
-  const [viewMode,     setViewMode]     = useState("grid");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterGroup,  setFilterGroup]  = useState("all");
   const [page,         setPage]         = useState(1);
   const [records,      setRecords]      = useState([]);
+  const [loading,      setLoading]      = useState(true);
 
   useEffect(() => {
     api.get("/attendance/my")
@@ -75,7 +118,7 @@ function Attendance({ user }) {
         setRecords(
           (Array.isArray(data) ? data : []).map((r, i) => ({
             id:       i + 1,
-            date:     r.date     ? new Date(r.date).toISOString().split("T")[0] : "—",
+            date:     r.date     ? String(r.date).split("T")[0] : "—",
             checkIn:  r.checkIn  || "—",
             checkOut: r.checkOut || "—",
             group:    r.group    || "—",
@@ -83,253 +126,306 @@ function Attendance({ user }) {
           }))
         )
       )
-      .catch(() => setRecords([]));
+      .catch(() => setRecords([]))
+      .finally(() => setLoading(false));
   }, []);
 
   const initials = (user?.firstName?.[0] || "") + (user?.lastName?.[0] || "");
-  const role     = user?.role === "admin" ? "Админ" : user?.role === "coach" ? "Дасгалжуулагч" : "Тоглогч";
 
   const present = records.filter(r => r.status === "present").length;
   const late    = records.filter(r => r.status === "late").length;
   const absent  = records.filter(r => r.status === "absent").length;
   const total   = records.length;
   const pct     = total ? Math.round(((present + late) / total) * 100) : 0;
+  const predicate = pct >= 90 ? "Шилдэг" : pct >= 75 ? "Тогтмол" : "Хичээнгүй";
 
-  const predicate = pct >= 90 ? "Шилдэг тоглогч" : pct >= 75 ? "Тогтмол" : "Хичээнгүй";
+  const uniqueGroups = [...new Set(records.map(r => r.group).filter(g => g && g !== "—"))];
 
-  const filtered = filterStatus === "all"
-    ? records
-    : records.filter(r => r.status === filterStatus);
-
+  const filtered   = records.filter(r =>
+    (filterStatus === "all" || r.status === filterStatus) &&
+    (filterGroup  === "all" || r.group  === filterGroup)
+  );
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const paged = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const paged      = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
-  const handleFilter = (f) => { setFilterStatus(f); setPage(1); };
+  const handleFilter      = f => { setFilterStatus(f); setPage(1); };
+  const handleGroupFilter = g => { setFilterGroup(g);  setPage(1); };
+
+  const GROUP_COLOR = {
+    "Анхан шат": { active: "bg-orange-500 text-white", dot: "bg-orange-500" },
+    "Дунд шат":  { active: "bg-blue-500   text-white", dot: "bg-blue-500"   },
+    "Ахисан шат":{ active: "bg-purple-500 text-white", dot: "bg-purple-500" },
+  };
 
   const statCards = [
-    { icon: <AttendanceIcon />, value: present + late, label: "Нийт ирц",            color: "text-orange-400 bg-orange-500/10 border-orange-500/20" },
-    { icon: <ClockInIcon />,    value: avgTime(records, "checkIn"),  label: "Дундаж орсон цаг",  color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
-    { icon: <ClockOutIcon />,   value: avgTime(records, "checkOut"), label: "Дундаж гарсан цаг", color: "text-purple-400 bg-purple-500/10 border-purple-500/20" },
-    { icon: <StarIcon />,       value: predicate,    label: "Үнэлгээ",              color: "text-green-400 bg-green-500/10 border-green-500/20" },
+    { label: "Нийт хичээл",     value: total,        sub: "бичлэг",    color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" },
+    { label: "Ирсэн",    value: present,      sub: "удаа",      color: "text-green-400",  bg: "bg-green-500/10  border-green-500/20"  },
+    { label: "Хоцорсон",        value: late,         sub: "удаа",      color: "text-amber-400",  bg: "bg-amber-500/10  border-amber-500/20"  },
+    { label: "Тасалсан",        value: absent,       sub: "удаа",      color: "text-red-400",    bg: "bg-red-500/10    border-red-500/20"    },
   ];
 
   const filterTabs = [
-    { key: "all",     label: "Бүгд"     },
-    { key: "present", label: "Цагтаа"   },
-    { key: "late",    label: "Хоцорсон" },
-    { key: "absent",  label: "Тасалсан" },
+    { key: "all",     label: "Бүгд",      count: total   },
+    { key: "present", label: "Ирсэн",    count: present },
+    { key: "late",    label: "Хоцорсон",  count: late    },
+    { key: "absent",  label: "Тасалсан",  count: absent  },
   ];
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
+
+      {/* ── Hero header ── */}
+      <section className="bg-[#0d0d0d] border-b border-white/10 py-8">
+        <div className="max-w-5xl mx-auto px-4 flex items-center gap-4">
+          <div className="w-12 h-12 bg-orange-500/15 border border-orange-500/25 rounded-2xl
+                          flex items-center justify-center font-bold text-orange-400 text-lg shrink-0 overflow-hidden">
+            {user?.profileImage
+              ? <img src={user.profileImage} alt="" className="w-full h-full object-cover" />
+              : initials || "U"}
+          </div>
+          <div>
+            <p className="text-orange-400 text-xs font-semibold uppercase tracking-widest">
+              Сайн байна уу, {user?.firstName}!
+            </p>
+            <h1 className="text-2xl font-extrabold text-white">
+              Миний <span className="text-orange-500">ирц</span>
+            </h1>
+            <p className="text-gray-500 text-sm">{total} нийт бичлэг · {predicate} тоглогч</p>
+          </div>
+        </div>
+      </section>
+
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
 
-        {/* ── User card ── */}
-        <div className="bg-[#111111] rounded-2xl border border-white/10 p-6">
-          {/* Top row: user info + buttons */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-4">
-              {/* Avatar */}
-              <div className="w-16 h-16 rounded-2xl overflow-hidden bg-orange-500/20 border border-orange-500/30
-                              flex items-center justify-center shrink-0">
-                {user?.profileImage
-                  ? <img src={user.profileImage} alt="avatar" className="w-full h-full object-cover" />
-                  : <span className="text-orange-400 font-bold text-2xl">{initials || "U"}</span>
-                }
+        {/* ── Attendance summary card ── */}
+        <div className="bg-[#151515] rounded-2xl border border-white/5 p-6">
+          <div className="flex flex-col sm:flex-row items-center gap-8">
+            {/* Ring */}
+            <RingChart pct={pct} present={present} late={late} absent={absent} total={total} />
+
+            {/* Details */}
+            <div className="flex-1 w-full space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="w-1 h-5 rounded-full bg-orange-500 shrink-0" />
+                <span className="text-white font-bold text-sm">Ирцийн хувь</span>
+                <span className="text-gray-500 text-xs tabular-nums">{present + late}/{total}</span>
+                <span className={`ml-auto text-xs font-bold px-2.5 py-1 rounded-full border
+                  ${pct >= 90 ? "bg-green-500/10 text-green-400 border-green-500/20"
+                  : pct >= 75 ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                  : "bg-red-500/10 text-red-400 border-red-500/20"}`}>
+                  {predicate}
+                </span>
               </div>
-              <div>
-                <h2 className="text-white font-bold text-xl">
-                  {user?.firstName} {user?.lastName}
-                </h2>
-                <div className="flex flex-wrap gap-4 mt-1">
-                  <span className="text-gray-500 text-sm">
-                    <span className="text-gray-600 text-xs uppercase tracking-wider mr-1">Эрх</span>
-                    <span className="text-white font-medium">{role}</span>
-                  </span>
-                  {user?.phone && (
-                    <span className="text-gray-500 text-sm">
-                      <span className="text-gray-600 text-xs uppercase tracking-wider mr-1">Утас</span>
-                      <span className="text-white font-medium">{user.phone}</span>
-                    </span>
-                  )}
-                  {user?.email && (
-                    <span className="text-gray-500 text-sm">
-                      <span className="text-gray-600 text-xs uppercase tracking-wider mr-1">И-мэйл</span>
-                      <span className="text-white font-medium">{user.email}</span>
-                    </span>
-                  )}
+
+              {/* Segmented bar */}
+              <div className="h-3 bg-white/5 rounded-full overflow-hidden flex">
+                {total > 0 && (
+                  <>
+                    <div className="bg-green-500 h-full transition-all duration-700"
+                         style={{ width: `${(present / total) * 100}%` }} />
+                    <div className="bg-amber-400 h-full transition-all duration-700"
+                         style={{ width: `${(late / total) * 100}%` }} />
+                    <div className="bg-red-500 h-full transition-all duration-700"
+                         style={{ width: `${(absent / total) * 100}%` }} />
+                  </>
+                )}
+              </div>
+
+              {/* Legend + avg times */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  {[
+                    { label: "Ирсэн",   val: present, pct: total ? Math.round((present/total)*100) : 0, color: "bg-green-500" },
+                    { label: "Хоцорсон", val: late,    pct: total ? Math.round((late/total)*100) : 0,    color: "bg-amber-400" },
+                    { label: "Тасалсан", val: absent,  pct: total ? Math.round((absent/total)*100) : 0,  color: "bg-red-500"   },
+                  ].map(b => (
+                    <div key={b.label} className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${b.color}`} />
+                      <span className="text-gray-500 text-xs flex-1">{b.label}</span>
+                      <span className="text-white text-xs font-semibold tabular-nums">{b.val}</span>
+                      <span className="text-gray-600 text-[10px] w-8 text-right tabular-nums">{b.pct}%</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-2 border-l border-white/5 pl-3">
+                  <div>
+                    <p className="text-gray-600 text-[10px] uppercase tracking-wider">Дундаж ирсэн цаг</p>
+                    <p className="text-white font-bold text-lg tabular-nums">{avgTime(records, "checkIn")}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 text-[10px] uppercase tracking-wider">Дундаж явсан цаг</p>
+                    <p className="text-white font-bold text-lg tabular-nums">{avgTime(records, "checkOut")}</p>
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* Year badge */}
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-white/10
-                              rounded-xl text-white text-sm font-medium">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round"
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                2026 он
-                <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Stat cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {statCards.map((s, i) => (
-              <div key={i} className={`rounded-2xl border p-4 flex items-center gap-3 ${s.color}`}>
-                <div className="opacity-80 shrink-0">{s.icon}</div>
-                <div className="min-w-0">
-                  <p className="text-white font-extrabold text-lg leading-none truncate">{s.value}</p>
-                  <p className="text-gray-500 text-xs mt-1">{s.label}</p>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 
-        {/* ── Progress bar ── */}
-        <div className="bg-[#111111] rounded-2xl border border-white/10 px-6 py-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="w-1 h-5 rounded-full bg-orange-500 shrink-0" />
-              <span className="text-white font-semibold text-sm">Ирцийн хувь</span>
-            </div>
-            <span className="text-orange-400 font-bold">{pct}%</span>
-          </div>
-          <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-            <div className="h-full bg-orange-500 rounded-full transition-all duration-700"
-                 style={{ width: `${pct}%` }} />
-          </div>
-          <div className="flex gap-4 mt-3">
-            {[
-              { label: "Цагтаа",   val: present, color: "bg-green-500" },
-              { label: "Хоцорсон", val: late,    color: "bg-amber-400" },
-              { label: "Тасалсан", val: absent,  color: "bg-red-400"   },
-            ].map(b => (
-              <div key={b.label} className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${b.color}`} />
-                <span className="text-gray-500 text-xs">{b.label} <span className="text-white font-semibold">{b.val}</span></span>
+        {/* ── History ── */}
+        <div className="bg-[#151515] rounded-2xl border border-white/5 overflow-hidden">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-white/5 flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="w-1 h-6 rounded-full bg-orange-500 shrink-0" />
+                <h3 className="text-white font-bold text-base">Ирцийн түүх</h3>
+                <span className="text-gray-600 text-xs">{filtered.length} бичлэг</span>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── History section ── */}
-        <div className="bg-[#111111] rounded-2xl border border-white/10 overflow-hidden">
-          {/* Section header */}
-          <div className="px-6 py-4 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <span className="w-1 h-6 rounded-full bg-orange-500 shrink-0" />
-              <h3 className="text-white font-bold text-base">Ирцийн түүх</h3>
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Filter tabs */}
-              <div className="flex gap-1 bg-black/30 p-1 rounded-xl border border-white/5">
+              {/* Status filter */}
+              <div className="flex gap-1 bg-black/30 p-1 rounded-xl border border-white/5 self-start sm:self-auto flex-wrap">
                 {filterTabs.map(t => (
-                  <button key={t.key} onClick={() => handleFilter(t.key)}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all
-                      ${filterStatus === t.key
-                        ? "bg-orange-500 text-white"
-                        : "text-gray-500 hover:text-white"}`}>
+                  <button key={t.key}
+                    onClick={() => { handleFilter(t.key); if (t.key !== "all") handleGroupFilter("all"); }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5
+                      ${filterStatus === t.key ? "bg-orange-500 text-white shadow" : "text-gray-500 hover:text-white"}`}>
                     {t.label}
+                    {t.count > 0 && (
+                      <span className={`text-[10px] font-bold px-1.5 rounded-full
+                        ${filterStatus === t.key ? "bg-white/20" : "bg-white/5"}`}>
+                        {t.count}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
-
-              {/* View toggle */}
-              <div className="flex gap-1 bg-black/30 p-1 rounded-xl border border-white/5">
-                <button onClick={() => setViewMode("grid")}
-                  className={`p-1.5 rounded-lg transition-all
-                    ${viewMode === "grid" ? "bg-orange-500 text-white" : "text-gray-500 hover:text-white"}`}>
-                  <GridIcon />
-                </button>
-                <button onClick={() => setViewMode("list")}
-                  className={`p-1.5 rounded-lg transition-all
-                    ${viewMode === "list" ? "bg-orange-500 text-white" : "text-gray-500 hover:text-white"}`}>
-                  <ListIcon />
-                </button>
-              </div>
             </div>
+
+            {/* Level dropdown — only on Бүгд tab with 2+ levels */}
+            {filterStatus === "all" && uniqueGroups.length >= 2 && (
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600 text-xs shrink-0">Түвшин:</span>
+                <div className="relative">
+                  <select
+                    value={filterGroup}
+                    onChange={e => handleGroupFilter(e.target.value)}
+                    className="appearance-none bg-[#1a1a1a] border border-white/10 rounded-xl
+                               pl-3 pr-8 py-1.5 text-xs font-semibold text-white
+                               focus:outline-none focus:border-orange-500/50 transition cursor-pointer">
+                    <option value="all">Бүгд түвшин</option>
+                    {uniqueGroups.map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
+                  <svg className="w-3 h-3 text-gray-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                       fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Records */}
-          <div className="p-6">
-            {paged.length === 0 ? (
-              <div className="text-center py-12 text-gray-600">
-                <p className="text-3xl mb-3"></p>
-                <p className="text-sm">Мэдээлэл олдсонгүй</p>
-              </div>
-            ) : viewMode === "grid" ? (
-              /* Grid view — 3 columns like the image */
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {paged.map(r => {
-                  const s = statusCfg[r.status];
-                  return (
-                    <div key={r.id}
-                      className="bg-[#1a1a1a] rounded-2xl border border-white/5 p-4 hover:border-white/10 transition-all">
-                      {/* Date + status */}
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2 text-gray-400">
-                          <ClockIcon />
-                          <span className="text-white font-semibold text-sm">{r.date}</span>
-                        </div>
-                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${s.cls}`}>
-                          {s.label}
-                        </span>
-                      </div>
-
-                      {/* Check in / out */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <p className="text-gray-600 text-xs uppercase tracking-wider mb-1">Орсон цаг</p>
-                          <p className="text-white font-bold text-lg">{r.checkIn}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-600 text-xs uppercase tracking-wider mb-1">Гарсан цаг</p>
-                          <p className="text-white font-bold text-lg">{r.checkOut}</p>
-                        </div>
-                      </div>
-
-                      {/* Group */}
-                      <div className="mt-3 pt-3 border-t border-white/5">
-                        <p className="text-gray-500 text-xs">🏐 {r.group}</p>
-                      </div>
-                    </div>
-                  );
-                })}
+          {/* Cards */}
+          <div className="p-5">
+            {loading ? (
+              <div className="text-center py-12 text-gray-600 text-sm">Уншиж байна...</div>
+            ) : paged.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10
+                                flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                </div>
+                <p className="text-gray-600 text-sm">Мэдээлэл олдсонгүй</p>
               </div>
             ) : (
-              /* List view */
-              <div className="divide-y divide-white/5 -mx-6 px-0">
+              <div className="space-y-3">
                 {paged.map(r => {
-                  const s = statusCfg[r.status];
+                  const sc      = STATUS_CFG[r.status] || STATUS_CFG.absent;
+                  const dateObj = parseDate(r.date);
+                  const dayNum  = dateObj ? dateObj.getDate() : "—";
+                  const month   = dateObj ? MN_MONTHS[dateObj.getMonth()] : "";
+                  const weekday = dateObj ? MN_DAYS[dateObj.getDay()] : "";
+                  const duration = (r.checkIn !== "—" && r.checkOut !== "—")
+                    ? (() => {
+                        const [ih, im] = r.checkIn.split(":").map(Number);
+                        const [oh, om] = r.checkOut.split(":").map(Number);
+                        const diff = (oh * 60 + om) - (ih * 60 + im);
+                        return diff > 0 ? `${diff} мин` : null;
+                      })()
+                    : null;
+
                   return (
-                    <div key={r.id}
-                      className="px-6 py-3.5 flex items-center gap-4 hover:bg-white/2 transition-all">
-                      <div className="flex items-center gap-2 text-gray-400 w-32 shrink-0">
-                        <ClockIcon />
-                        <span className="text-white text-sm font-medium">{r.date}</span>
-                      </div>
-                      <div className="flex-1 flex items-center gap-6 min-w-0">
-                        <div>
-                          <p className="text-gray-600 text-[10px] uppercase tracking-wider">Орсон</p>
-                          <p className="text-white font-bold text-sm">{r.checkIn}</p>
+                    <div key={r.id} className="flex rounded-2xl overflow-hidden">
+                      <div className={`w-2 shrink-0 ${sc.strip}`} />
+                      <div className="flex-1 bg-[#1c1c1c] border border-l-0 border-white/10 rounded-r-2xl overflow-hidden">
+
+                        {/* Status banner */}
+                        <div className={`px-4 py-2 flex items-center justify-between border-b border-white/5 ${sc.banner}`}>
+                          <div className="flex items-center gap-1.5">
+                            {sc.icon}
+                            <span className="text-xs font-bold">{sc.label}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-gray-600 text-[10px]">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            {r.date}
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-gray-600 text-[10px] uppercase tracking-wider">Гарсан</p>
-                          <p className="text-white font-bold text-sm">{r.checkOut}</p>
+
+                        {/* Main */}
+                        <div className="px-4 py-3.5 flex gap-4 items-center">
+                          {/* Date badge */}
+                          {dateObj && (
+                            <div className="shrink-0 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-center min-w-[54px]">
+                              <p className="text-gray-500 text-[10px] font-semibold">{month} сар</p>
+                              <p className="text-white font-extrabold text-2xl leading-none">{dayNum}</p>
+                              <p className="text-gray-600 text-[9px] mt-0.5">{weekday}</p>
+                            </div>
+                          )}
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <span className="inline-flex items-center gap-1 text-gray-500 text-xs mb-2">
+                              <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round"
+                                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              {r.group}
+                            </span>
+
+                            {/* Time row */}
+                            <div className="flex items-center gap-3">
+                              <div className="text-center">
+                                <p className="text-gray-600 text-[10px] uppercase tracking-wider">Орсон</p>
+                                <p className={`font-extrabold text-lg tabular-nums leading-tight
+                                  ${r.checkIn !== "—" ? "text-white" : "text-gray-700"}`}>
+                                  {r.checkIn}
+                                </p>
+                              </div>
+
+                              <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                                {duration && (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full
+                                                   bg-white/5 text-gray-500 border border-white/10">
+                                    {duration}
+                                  </span>
+                                )}
+                                <div className="w-full flex items-center gap-1">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-white/20 shrink-0" />
+                                  <div className="flex-1 border-t border-dashed border-white/10" />
+                                  <svg className="w-3 h-3 text-gray-600 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+                                  </svg>
+                                </div>
+                              </div>
+
+                              <div className="text-center">
+                                <p className="text-gray-600 text-[10px] uppercase tracking-wider">Дууссан</p>
+                                <p className={`font-extrabold text-lg tabular-nums leading-tight
+                                  ${r.checkOut !== "—" ? "text-white" : "text-gray-700"}`}>
+                                  {r.checkOut}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-gray-500 text-xs hidden sm:block">🏐 {r.group}</p>
                       </div>
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full border shrink-0 ${s.cls}`}>
-                        {s.label}
-                      </span>
                     </div>
                   );
                 })}
@@ -340,15 +436,29 @@ function Attendance({ user }) {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="px-6 py-4 border-t border-white/5 flex items-center justify-center gap-1">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/5
+                           text-gray-500 hover:text-white hover:bg-white/10 transition disabled:opacity-30">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
                 <button key={p} onClick={() => setPage(p)}
                   className={`w-8 h-8 rounded-lg text-sm font-semibold transition-all
                     ${page === p
-                      ? "bg-orange-500 text-white"
+                      ? "bg-orange-500 text-white shadow"
                       : "text-gray-500 hover:text-white hover:bg-white/5 border border-white/5"}`}>
                   {p}
                 </button>
               ))}
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 border border-white/5
+                           text-gray-500 hover:text-white hover:bg-white/10 transition disabled:opacity-30">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
           )}
         </div>

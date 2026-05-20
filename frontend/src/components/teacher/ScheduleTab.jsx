@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { api } from "../../api/api";
 import { accentCls, groupAccent, LEVELS, WEEKDAYS, DAY_IDX, inputCls } from "./shared";
 
+function toMin(t) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
+
 function SessionDetailPanel({ session, onDelete, onClose, onSaved, halls }) {
   const a = accentCls[session.accent];
   const selCls = `w-full px-3 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white
@@ -137,15 +139,15 @@ function SessionDetailPanel({ session, onDelete, onClose, onSaved, halls }) {
                 </select>
               )}
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1.5">Эхлэх огноо</p>
               <input type="date" value={form.startDate}
-                onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))} className={selCls} />
+                onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))} className={`${selCls} max-w-full`} />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1.5">Дуусах огноо</p>
               <input type="date" value={form.endDate}
-                onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))} className={selCls} />
+                onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))} className={`${selCls} max-w-full`} />
             </div>
             <div className="sm:col-span-2">
               <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1.5">Анги дүүргэлт (хамгийн их хүн)</p>
@@ -411,17 +413,19 @@ export default function ScheduleTab({ onAttendance }) {
         <div className="grid grid-cols-7 gap-1 min-h-[100px]">
           {WEEKDAYS.map((_, i) => {
             const colStr   = toDateStr(weekDates[i]);
-            const sessions = (sessionsByIdx[i] || []).filter(s => inRange(s, colStr));
+            const sessions = sessionsByIdx[i] || [];
             const isToday  = weekOffset === 0 && i === todayIdx;
             return (
               <div key={i} className={`space-y-1.5 px-0.5 py-1 rounded-xl
                 ${isToday ? "bg-orange-500/5 ring-1 ring-orange-500/20" : ""}`}>
                 {sessions.map(s => {
-                  const a      = accentCls[s.accent];
-                  const isOpen = activeSession?.id === s.id;
+                  const a       = accentCls[s.accent];
+                  const isOpen  = activeSession?.id === s.id;
+                  const active  = inRange(s, colStr);
                   return (
                     <button key={s.id} onClick={() => handleSessionClick(s)}
                       className={`w-full rounded-xl border px-2 py-2 text-left transition-all
+                        ${!active ? "opacity-40" : ""}
                         ${isOpen ? `ring-2 ring-orange-500/60 ${a.border} ${a.bg}` : `${a.border} ${a.bg} hover:brightness-125`}`}>
                       <p className={`text-[10px] font-bold ${a.text}`}>{s.start}–{s.end}</p>
                       <p className="text-white text-[10px] font-semibold leading-tight mt-0.5">{s.group}</p>
@@ -564,13 +568,13 @@ export default function ScheduleTab({ onAttendance }) {
                 </select>
               )}
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="text-gray-500 text-xs uppercase tracking-wider block mb-1.5">Эхлэх огноо</label>
-              <input type="date" value={form.startDate} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))} className={selCls} />
+              <input type="date" value={form.startDate} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))} className={`${selCls} max-w-full`} />
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="text-gray-500 text-xs uppercase tracking-wider block mb-1.5">Дуусах огноо</label>
-              <input type="date" value={form.endDate} onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))} className={selCls} />
+              <input type="date" value={form.endDate} onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))} className={`${selCls} max-w-full`} />
             </div>
             <div className="sm:col-span-2">
               <label className="text-gray-500 text-xs uppercase tracking-wider block mb-1.5">
@@ -701,32 +705,61 @@ export default function ScheduleTab({ onAttendance }) {
           <h3 className="text-white font-bold">Өнөөдрийн хуваарь</h3>
           <span className="text-gray-600 text-xs">{WEEKDAYS[todayIdx]}</span>
         </div>
-        <div className="divide-y divide-white/5">
-          {(sessionsByIdx[todayIdx] || []).filter(s => inRange(s, toDateStr(today))).map(s => {
-            const a = accentCls[s.accent];
-            return (
-              <div key={s.id} className="px-6 py-4 flex items-center gap-4">
-                <div className={`w-1 self-stretch rounded-full shrink-0 ${a.dot}`} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-semibold text-sm">{s.group}</p>
-                  <p className="text-gray-500 text-xs mt-0.5">🕘 {s.start}–{s.end} · 📍 {s.location}</p>
-                </div>
-                <button onClick={() => onAttendance(s.id)}
-                  className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all shrink-0
-                    ${a.badge} hover:brightness-125`}>
-                  Ирц бүртгэх
-                </button>
-              </div>
-            );
-          })}
-          {(sessionsByIdx[todayIdx] || []).filter(s => inRange(s, toDateStr(today))).length === 0 && (
+        <div className="p-4 space-y-3">
+          {(sessionsByIdx[todayIdx] || []).filter(s => inRange(s, toDateStr(today))).length === 0 ? (
             <div className="text-center py-10 text-gray-600">
-              <p className="text-2xl mb-2"></p>
+              <p className="text-2xl mb-2">📅</p>
               <p className="text-sm">{loading ? "Уншиж байна..." : "Өнөөдөр хуваарь байхгүй"}</p>
             </div>
-          )}
+          ) : (sessionsByIdx[todayIdx] || []).filter(s => inRange(s, toDateStr(today)))
+              .sort((a, b) => a.start.localeCompare(b.start))
+              .map(s => {
+                const a    = accentCls[s.accent];
+                const mins = toMin(s.end) - toMin(s.start);
+                return (
+                  <div key={s.id} className="flex rounded-2xl overflow-hidden">
+                    <div className={`w-2 shrink-0 ${a.dot}`} />
+                    <div className="flex-1 bg-[#1c1c1c] border border-l-0 border-white/10 rounded-r-2xl px-4 py-3.5">
+                      <p className="font-bold text-sm text-white mb-3">{s.group}</p>
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-xl font-extrabold tabular-nums text-white">{s.start}</span>
+                        <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${a.bg} ${a.text} ${a.border}`}>
+                            {mins} мин
+                          </span>
+                          <div className="w-full flex items-center gap-0.5">
+                            <div className={`w-2 h-2 rounded-full shrink-0 ${a.dot}`} />
+                            <div className="flex-1 border-t border-dashed border-white/20" />
+                            <svg className={`w-3.5 h-3.5 shrink-0 ${a.text}`} fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        </div>
+                        <span className="text-xl font-extrabold tabular-nums text-white">{s.end}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <svg className="w-3.5 h-3.5 shrink-0 text-gray-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round"
+                              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span className="text-gray-500 text-xs truncate">{s.location}</span>
+                        </div>
+                        <button onClick={() => onAttendance(s.id)}
+                          className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all shrink-0
+                            ${a.badge} hover:brightness-125`}>
+                          Ирц бүртгэх
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+          }
         </div>
       </div>
+
     </div>
   );
 }

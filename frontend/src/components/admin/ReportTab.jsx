@@ -89,7 +89,7 @@ export default function ReportTab() {
       ["Үзүүлэлт", "Тоо"],
       ["Нийт гишүүн", data.stats.totalMembers],
       ...activeGroups.map(l => [l, data.stats.byLevel[l] || 0]),
-      ["Нийт бэлтгэлийн тоо", data.stats.totalSessions],
+      ["Нийт орсон бэлтгэл", data.stats.totalSessions],
       ["Дундаж ирц", `${data.stats.avgPct}%`],
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s1), "Ерөнхий статистик");
@@ -118,7 +118,7 @@ export default function ReportTab() {
     const statRows = [
       ["Нийт гишүүн", data.stats.totalMembers],
       ...activeGroups.map(l => [l, data.stats.byLevel[l] || 0]),
-      ["Нийт бэлтгэлийн тоо", data.stats.totalSessions],
+      ["Нийт орсон бэлтгэл", data.stats.totalSessions],
       ["Дундаж ирц", `${data.stats.avgPct}%`],
     ].map(([k, v]) => `<tr><td>${k}</td><td><b>${v}</b></td></tr>`).join("");
 
@@ -226,7 +226,7 @@ export default function ReportTab() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
             {[
               { label: "Нийт гишүүн",         value: data.stats.totalMembers,   color: "text-white"    },
-              { label: "Нийт бэлтгэлийн тоо", value: data.stats.totalSessions,  color: "text-gray-200" },
+              { label: "Нийт орсон бэлтгэл", value: data.stats.totalSessions,  color: "text-gray-200" },
               { label: "Дундаж ирц",           value: `${data.stats.avgPct}%`,   color: pctCls(data.stats.avgPct).text },
               ...activeGroups.map(l => ({
                 label: l,

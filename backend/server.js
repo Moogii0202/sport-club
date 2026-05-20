@@ -14,6 +14,7 @@ const leaveRoutes          = require("./leave");
 const announcementRoutes   = require("./announcements");
 const hallRoutes           = require("./halls");
 const levelsRoutes         = require("./levels");
+const paymentsRoutes       = require("./payments");
 const db = require("./db");
 
 const app = express();
@@ -38,6 +39,7 @@ app.use("/api/leave",          leaveRoutes);
 app.use("/api/announcements",  announcementRoutes);
 app.use("/api/halls",          hallRoutes);
 app.use("/api/levels",         levelsRoutes);
+app.use("/api/payments",      paymentsRoutes);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, (err) => {

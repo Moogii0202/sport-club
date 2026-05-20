@@ -170,10 +170,6 @@ function Sidebar({ user, onLogout, collapsed, onToggle }) {
                 <p className="text-white font-semibold text-sm truncate">
                   {user?.firstName} {user?.lastName}
                 </p>
-                <span className={`inline-block text-xs px-2 py-0.5 rounded-full border mt-0.5
-                  ${roleColor[role] || roleColor.player}`}>
-                  {roleLabel[role] || role}
-                </span>
               </div>
             </div>
           )}
@@ -212,6 +208,19 @@ function Sidebar({ user, onLogout, collapsed, onToggle }) {
 
         {/* Bell + Logout */}
         <div className={`border-t border-white/10 space-y-1 ${collapsed ? "p-2" : "p-3"}`}>
+          {/* Logout */}
+          <button onClick={onLogout} title={collapsed ? "Гарах" : undefined}
+            className={`w-full flex items-center rounded-xl text-sm font-medium
+                       text-gray-500 hover:text-red-400 hover:bg-red-500/5
+                       transition-all duration-200
+                       ${collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"}`}>
+            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round"
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            {!collapsed && <span>Гарах</span>}
+          </button>
+
           {/* Notification bell */}
           <button onClick={notifOpen ? closePanel : openPanel}
             title={collapsed ? "Мэдэгдэл" : undefined}
@@ -232,18 +241,6 @@ function Sidebar({ user, onLogout, collapsed, onToggle }) {
             )}
           </button>
 
-          {/* Logout */}
-          <button onClick={onLogout}
-            title={collapsed ? "Гарах" : undefined}
-            className={`w-full flex items-center rounded-xl text-sm font-medium
-                       text-gray-500 hover:text-red-400 hover:bg-red-500/5 transition-all duration-200
-                       ${collapsed ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2.5"}`}>
-            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round"
-                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            {!collapsed && <span>Гарах</span>}
-          </button>
         </div>
       </aside>
 

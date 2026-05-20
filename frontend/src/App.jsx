@@ -185,17 +185,7 @@ function App() {
                 )}
               </button>
 
-              {user ? (
-                <div className="flex items-center gap-2">
-                  <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 bg-orange-500/10 text-orange-400 rounded-full text-xs">
-                    {role === "admin" ? "Админ" : role === "coach" ? "Багш" : "Тоглогч"}
-                  </span>
-                  <button onClick={handleLogout}
-                    className="hidden md:inline-flex px-5 py-2 border border-white/20 rounded-full hover:bg-white/10 transition">
-                    Гарах
-                  </button>
-                </div>
-              ) : (
+              {user ? null : (
                 <div className="hidden md:flex items-center gap-2">
                   <Link to="/register" className="px-4 py-2 hover:text-orange-400 transition font-medium">
                     Бүртгүүлэх
