@@ -62,6 +62,20 @@ async function initDB() {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS schedule (
+        id              SERIAL PRIMARY KEY,
+        "classId"       INTEGER NOT NULL REFERENCES class_groups(id),
+        "dayOfWeek"     TEXT NOT NULL,
+        "startTime"     TEXT NOT NULL,
+        "endTime"       TEXT NOT NULL,
+        location        TEXT,
+        "isPublic"      BOOLEAN DEFAULT TRUE,
+        "startDate"     TEXT,
+        "endDate"       TEXT
+      )
+    `);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS enrollments (
         id              SERIAL PRIMARY KEY,
         "userId"        INTEGER NOT NULL REFERENCES users(id),
@@ -81,20 +95,6 @@ async function initDB() {
           ALTER TABLE enrollments ADD COLUMN "scheduleId" INTEGER REFERENCES schedule(id);
         END IF;
       END $$;
-    `);
-
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS schedule (
-        id              SERIAL PRIMARY KEY,
-        "classId"       INTEGER NOT NULL REFERENCES class_groups(id),
-        "dayOfWeek"     TEXT NOT NULL,
-        "startTime"     TEXT NOT NULL,
-        "endTime"       TEXT NOT NULL,
-        location        TEXT,
-        "isPublic"      BOOLEAN DEFAULT TRUE,
-        "startDate"     TEXT,
-        "endDate"       TEXT
-      )
     `);
 
     // Migration: add startDate/endDate to schedule if they don't exist
