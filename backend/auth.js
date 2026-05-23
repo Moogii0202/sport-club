@@ -2,14 +2,10 @@ const express = require("express");
 const bcrypt  = require("bcrypt");
 const jwt     = require("jsonwebtoken");
 const db      = require("./db");
-require("dotenv").config();
 
 const router = express.Router();
 
-if (!process.env.JWT_SECRET) {
-  console.error("❌ АЛДАА: JWT_SECRET .env файлд тохируулагдаагүй байна!");
-  process.exit(1);
-}
+const JWT_SECRET = process.env.JWT_SECRET || "fallback-dev-secret-change-in-production";
 
 // ── Register ──────────────────────────────────────────────────────────────
 router.post("/register", async (req, res) => {
@@ -78,7 +74,7 @@ router.post("/login", async (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, phone: user.phone, role: user.role },
-      process.env.JWT_SECRET,
+      JWT_SECRET,
       { expiresIn: "7d" }
     );
 
