@@ -28,14 +28,132 @@ code {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #1a1a1a;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;
+  background: #444;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: #666;
+}
+
+/* ── Home page animations ───────────────────────────────────────────────────── */
+@keyframes floatY {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+@keyframes scrollLine {
+  0%   { transform: scaleY(0); opacity: 1; transform-origin: top; }
+  100% { transform: scaleY(1); opacity: 0; transform-origin: top; }
+}
+
+.animate-float    { animation: floatY 3s ease-in-out infinite; }
+.animate-shimmer  {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
+  background-size: 200% auto;
+  animation: shimmer 2.5s linear infinite;
+}
+.animate-scroll-line { animation: scrollLine 1.4s ease-in-out infinite; }
+
+/* Hide scrollbar (keep scroll functionality) */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Timeline adaptive colors */
+.tl-line  { background-color: rgba(255,255,255,0.18); }
+.tl-year  { color: rgba(255,255,255,0.08); }
+.tl-arrow { color: rgba(255,255,255,0.30); }
+html:not(.dark) .tl-line  { background-color: rgba(0,0,0,0.18) !important; }
+html:not(.dark) .tl-year  { color: rgba(0,0,0,0.08) !important; }
+html:not(.dark) .tl-arrow { color: rgba(0,0,0,0.30) !important; }
+
+@keyframes coachZoom {
+  from { transform: scale(1.09); opacity: 0.6; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+@keyframes coachFade {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.coach-zoom { animation: coachZoom 0.55s cubic-bezier(0.22,1,0.36,1) forwards; }
+.coach-fade { animation: coachFade 0.45s ease-out forwards; }
+
+/* Hero overlay — light mode-д нуух */
+html:not(.dark) .hero-overlay { display: none; }
+
+/* Hero section — light mode-д текст өнгийг хэвээр үлдээх */
+html:not(.dark) .hero-text h1,
+html:not(.dark) .hero-text p  { color: inherit; }
+html:not(.dark) .hero-text .text-white    { color: #1a1a1a !important; }
+html:not(.dark) .hero-text .text-gray-400 { color: #4a4a4a !important; }
+
+/* ── Light mode — warm minimal (PlayerZero-style) ───────────────────────────── */
+
+/* Scrollbar */
+html:not(.dark) ::-webkit-scrollbar-track { background: #e8e4de; }
+html:not(.dark) ::-webkit-scrollbar-thumb { background: #b5afa7; border-radius: 4px; }
+html:not(.dark) ::-webkit-scrollbar-thumb:hover { background: #8c857c; }
+
+/* Base */
+html:not(.dark) body {
+  background-color: #eeeae4;
+  color: #1a1a1a;
+}
+
+/* ── Backgrounds ── */
+/* Darkest sections → main warm bg */
+html:not(.dark) .bg-\[\#0a0a0a\] { background-color: #eeeae4 !important; }
+html:not(.dark) .bg-\[\#0d0d0d\] { background-color: #eeeae4 !important; }
+
+/* Main panels / navbar / sidebar / footer → white card */
+html:not(.dark) .bg-\[\#111111\] { background-color: #ffffff !important; }
+html:not(.dark) .bg-\[\#111\]    { background-color: #ffffff !important; }
+
+/* Secondary cards → slightly warm white */
+html:not(.dark) .bg-\[\#151515\] { background-color: #f7f4f0 !important; }
+html:not(.dark) .bg-\[\#1a1a1a\] { background-color: #f7f4f0 !important; }
+html:not(.dark) .bg-\[\#1c1c1c\] { background-color: #f7f4f0 !important; }
+
+/* Translucent white overlays → translucent dark */
+html:not(.dark) .bg-white\/5  { background-color: rgba(0,0,0,0.04) !important; }
+html:not(.dark) .bg-white\/10 { background-color: rgba(0,0,0,0.06) !important; }
+
+/* ── Gradients → warm fade ── */
+html:not(.dark) .from-\[\#0a0a0a\] { --tw-gradient-from: #eeeae4 var(--tw-gradient-from-position) !important; }
+html:not(.dark) .via-\[\#0a0a0a\]  { --tw-gradient-stops: var(--tw-gradient-from), #eeeae4 var(--tw-gradient-via-position), var(--tw-gradient-to) !important; }
+html:not(.dark) .to-\[\#0a0a0a\]   { --tw-gradient-to: #eeeae4 var(--tw-gradient-to-position) !important; }
+
+/* ── Text ── */
+html:not(.dark) .text-white    { color: #1a1a1a !important; }
+html:not(.dark) .text-gray-300 { color: #4a4a4a !important; }
+html:not(.dark) .text-gray-400 { color: #5c5c5c !important; }
+html:not(.dark) .text-gray-500 { color: #6e6e6e !important; }
+html:not(.dark) .text-gray-600 { color: #555555 !important; }
+html:not(.dark) .text-gray-700 { color: #3d3d3d !important; }
+
+/* ── Borders ── */
+html:not(.dark) .border-white\/5  { border-color: rgba(0,0,0,0.06) !important; }
+html:not(.dark) .border-white\/10 { border-color: rgba(0,0,0,0.09) !important; }
+html:not(.dark) .border-white\/15 { border-color: rgba(0,0,0,0.11) !important; }
+html:not(.dark) .border-white\/30 { border-color: rgba(0,0,0,0.18) !important; }
+html:not(.dark) .divide-white\/5 > * + * { border-color: rgba(0,0,0,0.07) !important; }
+
+/* ── Hovers ── */
+html:not(.dark) .hover\:bg-white\/5:hover  { background-color: rgba(0,0,0,0.04) !important; }
+html:not(.dark) .hover\:bg-white\/10:hover { background-color: rgba(0,0,0,0.06) !important; }
+html:not(.dark) .hover\:bg-white\/3:hover  { background-color: rgba(0,0,0,0.03) !important; }
+html:not(.dark) .hover\:text-white:hover   { color: #1a1a1a !important; }
+
+/* ── Card shadows for depth ── */
+html:not(.dark) .rounded-2xl,
+html:not(.dark) .rounded-xl,
+html:not(.dark) .rounded-3xl {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
 }

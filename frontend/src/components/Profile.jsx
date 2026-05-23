@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { api } from "../api/api";
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -28,10 +28,6 @@ const SESSIONS = [
   { id: 7, dateIdx: 5, date: "2026-04-25", start: "10:00", end: "12:00", location: "Дасгалын заал №1", coach: "Б. Бат-Эрдэнэ", group: "Анхан шат", status: "active",    accent: "orange" },
 ];
 
-const COACHES = [
-  { id: 1, initials: "ББ", name: "Б. Бат-Эрдэнэ", specialty: "Анхан болон Ахисан шат", experience: "8 жил", phone: "9900-0002", email: "coach@volleyball.mn",  color: "orange" },
-  { id: 2, initials: "ОО", name: "О. Оюун",        specialty: "Дунд болон Ахисан шат",  experience: "5 жил", phone: "9900-0003", email: "oyuun@volleyball.mn",  color: "blue"   },
-];
 
 const accentCls = {
   orange: { border: "border-orange-500/40", bg: "bg-orange-500/10", text: "text-orange-400", dot: "bg-orange-500", avatar: "bg-orange-500/20 border-orange-500/30 text-orange-400" },
@@ -248,6 +244,33 @@ function Profile({ user, onUpdate, onLogout }) {
 
   const [calView,   setCalView]   = useState("week");   // "day" | "week" | "month"
   const [dismissed, setDismissed] = useState([]);
+
+  const [coaches, setCoaches] = useState([]);
+
+  useEffect(() => {
+    api.get("/schedule/enrolled")
+      .then(data => {
+        const rows = Array.isArray(data) ? data : [];
+        const coachMap = {};
+        rows.forEach(s => {
+          if (!s.coachId) return;
+          if (!coachMap[s.coachId]) {
+            coachMap[s.coachId] = {
+              id:    s.coachId,
+              name:  `${s.coachLastName ?? ""} ${s.coachFirstName ?? ""}`.trim(),
+              image: s.coachImage || null,
+              phone: s.coachPhone || "",
+              email: s.coachEmail || "",
+              levels: [],
+            };
+          }
+          if (s.level && !coachMap[s.coachId].levels.includes(s.level))
+            coachMap[s.coachId].levels.push(s.level);
+        });
+        setCoaches(Object.values(coachMap));
+      })
+      .catch(() => setCoaches([]));
+  }, []);
 
   const initials = (user?.firstName?.[0] || "") + (user?.lastName?.[0] || "");
   const role     = user?.role || "player";
@@ -470,48 +493,89 @@ function Profile({ user, onUpdate, onLogout }) {
             <h3 className="text-white font-bold">Дасгалжуулагчид</h3>
             <p className="text-gray-600 text-xs mt-0.5">Таны бүлгийн дасгалжуулагчдийн мэдээлэл</p>
           </div>
-          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {COACHES.map(c => {
-              const a = accentCls[c.color];
-              return (
-                <div key={c.id}
-                  className={`rounded-2xl border p-5 flex gap-4 items-start ${a.border} ${a.bg}`}>
-                  {/* Avatar */}
-                  <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center
-                                   shrink-0 font-bold text-lg ${a.avatar}`}>
-                    {c.initials}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className={`font-bold text-white text-sm`}>{c.name}</p>
-                    <p className={`text-xs font-medium mt-0.5 ${a.text}`}>{c.specialty}</p>
-                    <div className="mt-2 space-y-1">
-                      <div className="flex items-center gap-2 text-gray-500 text-xs">
-                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round"
-                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        {c.experience} туршлагатай
+          {coaches.length === 0 ? (
+            <div className="px-6 pb-6 pt-4 text-gray-600 text-sm">
+              Элссэн бүлэгт дасгалжуулагч байхгүй байна
+            </div>
+          ) : (
+            <div className="flex gap-4 overflow-x-auto pb-6 px-6 pt-6 hide-scrollbar snap-x snap-mandatory
+                            sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-x-visible sm:snap-none">
+              {coaches.map((c, idx) => {
+                const specialty = c.levels.join(" · ") || "Дасгалжуулагч";
+                return (
+                  <div key={c.id} className="group shrink-0 w-[200px] sm:w-auto snap-start">
+
+                    {/* Photo card */}
+                    <div className="relative rounded-2xl overflow-hidden bg-[#111111] mb-4"
+                         style={{ aspectRatio: "3/4" }}>
+
+                      {c.image ? (
+                        <img src={c.image} alt={c.name}
+                             className="w-full h-full object-cover object-center
+                                        group-hover:scale-105 transition-transform duration-700" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-[7rem] font-black text-white/[0.06] select-none leading-none">
+                            {c.name[0] || "?"}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Vertical specialty — top left */}
+                      <div className="absolute top-4 left-3 z-10">
+                        <span className="text-[11px] font-bold tracking-widest text-white/70
+                                         drop-shadow select-none"
+                              style={{ writingMode: "vertical-rl" }}>
+                          {specialty}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-2 text-gray-500 text-xs">
-                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round"
-                            d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                        </svg>
-                        {c.phone}
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-500 text-xs">
-                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round"
-                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                        {c.email}
+
+                      {/* Diagonal wedge before white banner */}
+                      <div className="absolute pointer-events-none bg-white"
+                           style={{ bottom: "56px", left: 0, width: "88px", height: "28px",
+                                    clipPath: "polygon(100% 0, 100% 100%, 0 100%)" }} />
+
+                      {/* White name banner */}
+                      <div className="absolute bottom-0 left-0 right-0 h-14 bg-white
+                                      flex items-center px-3 gap-3">
+                        <div className="w-8 h-8 bg-orange-500 shrink-0 flex items-center justify-center
+                                        text-white font-black text-sm"
+                             style={{ borderRadius: "4px" }}>
+                          {idx + 1}
+                        </div>
+                        <p className="text-gray-900 font-black text-base leading-tight truncate">
+                          {c.name}
+                        </p>
                       </div>
                     </div>
+
+                    {/* Info below card */}
+                    <div className="px-0.5 space-y-1.5">
+                      <p className="text-orange-400 text-[11px] font-semibold mb-2">{specialty}</p>
+                      {c.phone && (
+                        <div className="flex items-center gap-2 text-gray-500 text-xs">
+                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round"
+                              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                          {c.phone}
+                        </div>
+                      )}
+                      {c.email && (
+                        <div className="flex items-center gap-2 text-gray-500 text-xs">
+                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round"
+                              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                          {c.email}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
       </div>

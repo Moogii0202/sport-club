@@ -66,11 +66,30 @@ const IcoLogout = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
   </svg>
 );
-const IcoBall = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24">
-    <circle cx="12" cy="12" r="10" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M2 12h20" />
+const IcoSun = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path strokeLinecap="round" strokeLinejoin="round"
+      d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+  </svg>
+);
+const IcoMoon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+  </svg>
+);
+const IcoBall = ({ size = 32 }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+    {/* Orange filled sphere */}
+    <circle cx="16" cy="16" r="15" fill="#f97316"/>
+    {/* Subtle outer ring */}
+    <circle cx="16" cy="16" r="15" stroke="rgba(255,255,255,0.18)" strokeWidth="0.8"/>
+    {/* Globe latitude arcs */}
+    <path d="M2 10.5 Q16 7.5 30 10.5" stroke="white" strokeWidth="1.5" strokeOpacity="0.85" strokeLinecap="round" fill="none"/>
+    <path d="M1 16 H31"               stroke="white" strokeWidth="1.5" strokeOpacity="0.9"  strokeLinecap="round"/>
+    <path d="M2 21.5 Q16 24.5 30 21.5" stroke="white" strokeWidth="1.5" strokeOpacity="0.85" strokeLinecap="round" fill="none"/>
+    {/* Vertical longitude */}
+    <path d="M16 1 V31" stroke="white" strokeWidth="1.5" strokeOpacity="0.45" strokeLinecap="round"/>
   </svg>
 );
 const IcoLocation = () => (
@@ -118,6 +137,19 @@ function App() {
     () => localStorage.getItem("sidebar_collapsed") === "true"
   );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isDark, setIsDark] = useState(
+    () => localStorage.getItem("theme") !== "light"
+  );
+
+  useEffect(() => {
+    const html = document.documentElement;
+    if (isDark) {
+      html.classList.add("dark");
+    } else {
+      html.classList.remove("dark");
+    }
+    localStorage.setItem("theme", isDark ? "dark" : "light");
+  }, [isDark]);
 
   const toggleSidebar = () => setSidebarCollapsed(prev => {
     const next = !prev;
@@ -153,9 +185,11 @@ function App() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <Link to="/" onClick={closeMenu} className="flex items-center gap-2 font-bold text-xl">
-              <span className="text-orange-500"><IcoBall /></span>
-              <span className="hidden sm:inline tracking-tight">VOLLEYBALL</span>
+            <Link to="/" onClick={closeMenu} className="flex items-center gap-2.5">
+              <img src="/volleyball_club_logo_v2.svg" alt="Logo" className="h-12 w-auto" />
+              <span className="font-black text-[17px] tracking-widest text-white uppercase">
+                Volleyball
+              </span>
             </Link>
 
             {/* Desktop nav links */}
@@ -169,6 +203,14 @@ function App() {
 
             {/* Right section */}
             <div className="flex items-center gap-2 text-sm">
+              {/* Theme toggle */}
+              <button
+                onClick={() => setIsDark(prev => !prev)}
+                className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition"
+                title={isDark ? "Цайвар горим" : "Харанхуй горим"}>
+                {isDark ? <IcoSun /> : <IcoMoon />}
+              </button>
+
               {/* Hamburger — mobile only */}
               <button
                 className="md:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition"
@@ -201,59 +243,106 @@ function App() {
         </div>
       </nav>
 
-      {/* Mobile menu overlay */}
-      {mobileMenuOpen && (
-        <div className="md:hidden fixed top-16 left-0 right-0 bottom-0 z-40 bg-[#0d0d0d] overflow-y-auto">
-          <div className="p-4 space-y-1">
-            <p className="text-gray-600 text-xs uppercase tracking-widest px-4 mb-2 mt-1">Үндсэн</p>
-            <MobileNavLink to="/"      icon={<IcoHome />}  label="Нүүр"         onClick={closeMenu} />
-            <MobileNavLink to="/about" icon={<IcoAbout />} label="Бидний тухай" onClick={closeMenu} />
+      {/* Mobile drawer backdrop */}
+      <div
+        className={`md:hidden fixed inset-0 z-40 bg-black/60 transition-opacity duration-300
+          ${mobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        onClick={closeMenu}
+      />
 
-            {user ? (
-              <>
-                <div className="my-3 border-t border-white/10" />
-                <p className="text-gray-600 text-xs uppercase tracking-widest px-4 mb-2">Хэрэглэгч</p>
-                <MobileNavLink to="/profile"    icon={<IcoProfile />}    label="Профайл"          onClick={closeMenu} />
-                <MobileNavLink to="/schedule"   icon={<IcoSchedule />}   label="Хуваарь"          onClick={closeMenu} />
-                <MobileNavLink to="/attendance" icon={<IcoAttendance />} label="Ирц"              onClick={closeMenu} />
-                <MobileNavLink to="/leave"      icon={<IcoLeave />}      label="Чөлөөний хүсэлт" onClick={closeMenu} />
-                <MobileNavLink to="/enrollment" icon={<IcoEnroll />}     label="Элсэлт"           onClick={closeMenu} />
+      {/* Mobile drawer */}
+      <div className={`md:hidden fixed top-0 right-0 h-full w-72 z-50 bg-[#111111]
+                       border-l border-white/10 flex flex-col
+                       transition-transform duration-300 ease-in-out
+                       ${mobileMenuOpen ? "translate-x-0" : "translate-x-full"}`}>
 
-                {role === "admin" && (
-                  <>
-                    <div className="my-3 border-t border-white/10" />
-                    <p className="text-gray-600 text-xs uppercase tracking-widest px-4 mb-2">Удирдлага</p>
-                    <MobileNavLink to="/admin" icon={<IcoAdmin />} label="Админ хэсэг" onClick={closeMenu} />
-                  </>
-                )}
-                {role === "coach" && (
-                  <>
-                    <div className="my-3 border-t border-white/10" />
-                    <p className="text-gray-600 text-xs uppercase tracking-widest px-4 mb-2">Удирдлага</p>
-                    <MobileNavLink to="/coach" icon={<IcoCoach />} label="Дасгалжуулагч" onClick={closeMenu} />
-                  </>
-                )}
-
-                <div className="my-3 border-t border-white/10" />
-                <button onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium
-                             text-gray-400 hover:text-red-400 hover:bg-red-500/5 transition border border-transparent">
-                  <IcoLogout />
-                  Гарах
-                </button>
-              </>
-            ) : (
-              <>
-                <MobileNavLink to="/enrollment" icon={<IcoEnroll />}   label="Элсэлт"    onClick={closeMenu} />
-                <div className="my-3 border-t border-white/10" />
-                <p className="text-gray-600 text-xs uppercase tracking-widest px-4 mb-2">Бүртгэл</p>
-                <MobileNavLink to="/register" icon={<IcoRegister />} label="Бүртгүүлэх" onClick={closeMenu} />
-                <MobileNavLink to="/login"    icon={<IcoLogin />}    label="Нэвтрэх"    onClick={closeMenu} />
-              </>
-            )}
-          </div>
+        {/* Drawer header — user info or logo */}
+        <div className="flex items-center justify-between px-4 h-16 border-b border-white/10 shrink-0">
+          {user ? (
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-orange-500/20 border border-orange-500/30
+                              flex items-center justify-center shrink-0">
+                <span className="text-orange-400 font-bold text-sm">
+                  {(user?.firstName?.[0] || "") + (user?.lastName?.[0] || "")}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-white font-bold text-sm truncate">
+                  {user?.firstName} {user?.lastName}
+                </p>
+                <p className="text-gray-500 text-[11px] truncate">
+                  {role === "admin" ? "Админ" : role === "coach" ? "Дасгалжуулагч" : "Тоглогч"}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <Link to="/" onClick={closeMenu} className="flex items-center gap-2">
+              <img src="/volleyball_club_logo_v2.svg" alt="Logo" className="h-10 w-auto" />
+              <span className="font-black text-[15px] tracking-widest text-white uppercase">Volleyball</span>
+            </Link>
+          )}
+          <button onClick={closeMenu}
+            className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition shrink-0">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-      )}
+
+        {/* Nav links */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-1">
+          <p className="text-gray-600 text-xs uppercase tracking-widest px-3 mb-2 mt-1">Үндсэн</p>
+          <MobileNavLink to="/"      icon={<IcoHome />}  label="Нүүр"         onClick={closeMenu} />
+          <MobileNavLink to="/about" icon={<IcoAbout />} label="Бидний тухай" onClick={closeMenu} />
+
+          {user ? (
+            <>
+              <div className="my-3 border-t border-white/10" />
+              <p className="text-gray-600 text-xs uppercase tracking-widest px-3 mb-2">Хэрэглэгч</p>
+              <MobileNavLink to="/profile"    icon={<IcoProfile />}    label="Профайл"          onClick={closeMenu} />
+              <MobileNavLink to="/schedule"   icon={<IcoSchedule />}   label="Хуваарь"          onClick={closeMenu} />
+              <MobileNavLink to="/attendance" icon={<IcoAttendance />} label="Ирц"              onClick={closeMenu} />
+              <MobileNavLink to="/leave"      icon={<IcoLeave />}      label="Чөлөөний хүсэлт" onClick={closeMenu} />
+              <MobileNavLink to="/enrollment" icon={<IcoEnroll />}     label="Элсэлт"           onClick={closeMenu} />
+
+              {role === "admin" && (
+                <>
+                  <div className="my-3 border-t border-white/10" />
+                  <p className="text-gray-600 text-xs uppercase tracking-widest px-3 mb-2">Удирдлага</p>
+                  <MobileNavLink to="/admin" icon={<IcoAdmin />} label="Админ хэсэг"    onClick={closeMenu} />
+                </>
+              )}
+              {role === "coach" && (
+                <>
+                  <div className="my-3 border-t border-white/10" />
+                  <p className="text-gray-600 text-xs uppercase tracking-widest px-3 mb-2">Удирдлага</p>
+                  <MobileNavLink to="/coach" icon={<IcoCoach />} label="Дасгалжуулагч" onClick={closeMenu} />
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <MobileNavLink to="/enrollment" icon={<IcoEnroll />}   label="Элсэлт"    onClick={closeMenu} />
+              <div className="my-3 border-t border-white/10" />
+              <p className="text-gray-600 text-xs uppercase tracking-widest px-3 mb-2">Бүртгэл</p>
+              <MobileNavLink to="/register" icon={<IcoRegister />} label="Бүртгүүлэх" onClick={closeMenu} />
+              <MobileNavLink to="/login"    icon={<IcoLogin />}    label="Нэвтрэх"    onClick={closeMenu} />
+            </>
+          )}
+        </div>
+
+        {/* Bottom — logout */}
+        {user && (
+          <div className="border-t border-white/10 p-3 shrink-0">
+            <button onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+                         text-gray-400 hover:text-red-400 hover:bg-red-500/5 transition border border-transparent">
+              <IcoLogout />
+              Гарах
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Desktop Sidebar */}
       {user && (
@@ -281,10 +370,9 @@ function App() {
           <div className="max-w-6xl mx-auto px-4 py-10">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div>
-                <h3 className="text-white font-bold text-lg mb-3 flex items-center gap-2">
-                  <span className="text-orange-500"><IcoBall /></span>
-                  VOLLEYBALL CLUB
-                </h3>
+                <div className="mb-3">
+                  <img src="/volleyball_club_logo_v2.svg" alt="Logo" className="h-10 w-auto" />
+                </div>
                 <p className="text-sm leading-relaxed">
                   Мэргэжлийн волейболын сургалт, тэмцээнд бэлтгэх хөтөлбөрүүд.
                 </p>

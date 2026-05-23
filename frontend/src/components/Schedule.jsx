@@ -710,53 +710,7 @@ function PersonalSchedule({ user }) {
           </div>
         </div>
 
-        {/* Coaches */}
-        <div className="bg-[#151515] rounded-2xl border border-white/5 overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/5">
-            <h3 className="text-white font-bold">Дасгалжуулагчид</h3>
-            <p className="text-gray-600 text-xs mt-0.5">Таны бүлгийн дасгалжуулагчдийн мэдээлэл</p>
-          </div>
-          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {coaches.length === 0 ? (
-              <p className="text-gray-600 text-sm col-span-2 text-center py-4">Дасгалжуулагч байхгүй</p>
-            ) : coaches.map((c, i) => {
-              const a        = accentClasses[c.color] || accentClasses.orange;
-              const initials = c.name.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
-              return (
-                <div key={i} className={`rounded-2xl border p-5 flex gap-4 items-start ${a.border} ${a.bg}`}>
-                  <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center
-                                   shrink-0 font-bold text-lg ${a.avatar}`}>
-                    {initials}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-white text-sm">{c.name}</p>
-                    <p className={`text-xs font-medium mt-0.5 ${a.text}`}>{c.group}</p>
-                    <div className="mt-2 space-y-1">
-                      {c.phone && (
-                        <div className="flex items-center gap-2 text-gray-500 text-xs">
-                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round"
-                              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                          </svg>
-                          {c.phone}
-                        </div>
-                      )}
-                      {c.email && (
-                        <div className="flex items-center gap-2 text-gray-500 text-xs">
-                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round"
-                              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                          </svg>
-                          {c.email}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        
 
       </div>
     </div>

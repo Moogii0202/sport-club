@@ -28,6 +28,8 @@ router.get("/", async (req, res) => {
         cg."coachId",
         u."firstName"    AS "coachFirstName",
         u."lastName"     AS "coachLastName",
+        u.phone          AS "coachPhone",
+        u.email          AS "coachEmail",
         s."dayOfWeek",
         s."startTime",
         s."endTime",
@@ -36,11 +38,11 @@ router.get("/", async (req, res) => {
         TO_CHAR(s."endDate"::date,   'YYYY-MM-DD') AS "endDate",
         cg."maxCapacity",
         cg.fee,
-        COUNT(e.id) FILTER (WHERE e.status = 'approved') AS "enrolledCount"
+        COUNT(e.id) AS "enrolledCount"
       FROM schedule s
       JOIN class_groups cg ON s."classId" = cg.id
       LEFT JOIN users u ON cg."coachId" = u.id
-      LEFT JOIN enrollments e ON e."classId" = cg.id
+      LEFT JOIN enrollments e ON e."scheduleId" = s.id AND e.status = 'approved'
       WHERE s."isPublic" = TRUE
       GROUP BY s.id, cg.id, u.id
       ORDER BY
@@ -81,11 +83,21 @@ router.get("/enrolled", authenticateToken, async (req, res) => {
       FROM schedule s
       JOIN class_groups cg ON s."classId" = cg.id
       LEFT JOIN users u ON cg."coachId" = u.id
-      WHERE cg.id IN (
-        SELECT "classId" FROM enrollments
-        WHERE "userId" = $1 AND status IN ('pending', 'approved')
+      WHERE (
+        s.id IN (
+          SELECT "scheduleId" FROM enrollments
+          WHERE "userId" = $1 AND status IN ('pending', 'approved')
+            AND "scheduleId" IS NOT NULL
+        )
+        OR (
+          cg.id IN (
+            SELECT "classId" FROM enrollments
+            WHERE "userId" = $1 AND status IN ('pending', 'approved')
+              AND "scheduleId" IS NULL
+          )
+          AND s."isPublic" = TRUE
+        )
       )
-      AND s."isPublic" = TRUE
       ORDER BY
         CASE s."dayOfWeek"
           WHEN 'Даваа'   THEN 1 WHEN 'Мягмар' THEN 2 WHEN 'Лхагва' THEN 3
@@ -144,10 +156,13 @@ router.get("/my", authenticateToken, requireRole("coach"), async (req, res) => {
         TO_CHAR(s."startDate"::date, 'YYYY-MM-DD') AS "startDate",
         TO_CHAR(s."endDate"::date,   'YYYY-MM-DD') AS "endDate",
         cg."maxCapacity",
-        cg.fee
+        cg.fee,
+        COUNT(e.id) AS "enrolledCount"
       FROM schedule s
       JOIN class_groups cg ON s."classId" = cg.id
+      LEFT JOIN enrollments e ON e."scheduleId" = s.id AND e.status = 'approved'
       WHERE cg."coachId" = $1
+      GROUP BY s.id, cg.id
       ORDER BY
         CASE s."dayOfWeek"
           WHEN 'Даваа'   THEN 1 WHEN 'Мягмар' THEN 2 WHEN 'Лхагва' THEN 3

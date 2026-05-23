@@ -10,10 +10,13 @@ router.get("/my", authenticateToken, async (req, res) => {
     const result = await db.query(`
       SELECT
         TO_CHAR(a.date::date, 'YYYY-MM-DD') AS date,
-        a."startTime"                 AS "checkIn",
-        a."endTime"                   AS "checkOut",
-        cg.name                       AS "group",
-        COALESCE(a.status, 'absent')  AS status
+        a."startTime"  AS "checkIn",
+        a."endTime"    AS "checkOut",
+        cg.name        AS "group",
+        CASE
+          WHEN lr_approved.id IS NOT NULL THEN 'on_leave'
+          ELSE COALESCE(a.status, 'absent')
+        END AS status
       FROM (
         SELECT DISTINCT ON (ts."classId", ts.date)
           ts.id         AS "sessionId",
@@ -49,6 +52,16 @@ router.get("/my", authenticateToken, async (req, res) => {
         ORDER BY ts."classId", ts.date, ts.id DESC
       ) a
       JOIN class_groups cg ON cg.id = a."classId"
+      LEFT JOIN leave_requests lr_approved ON lr_approved."userId" = $1
+        AND lr_approved."classId" = a."classId"
+        AND TO_CHAR(lr_approved.date::date, 'YYYY-MM-DD') = TO_CHAR(a.date::date, 'YYYY-MM-DD')
+        AND lr_approved.status = 'approved'
+      LEFT JOIN leave_requests lr_pending ON lr_pending."userId" = $1
+        AND lr_pending."classId" = a."classId"
+        AND TO_CHAR(lr_pending.date::date, 'YYYY-MM-DD') = TO_CHAR(a.date::date, 'YYYY-MM-DD')
+        AND lr_pending.status = 'pending'
+      WHERE (a.status IS NOT NULL OR lr_approved.id IS NOT NULL)
+        AND lr_pending.id IS NULL
       ORDER BY a.date DESC
       LIMIT 50
     `, [req.user.id]);

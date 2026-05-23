@@ -155,11 +155,22 @@ export default function AttendanceTab({ initialSessionId: initialScheduleId }) {
               <div key={m.id} className="px-5 py-3.5 flex items-center gap-4">
                 <MemberAvatar m={memForAvatar} size="sm" />
                 <p className="text-white font-medium text-sm flex-1">{m.lastName}. {m.firstName}</p>
-                <div className="flex gap-1.5 flex-wrap">
-                  {statusBtn(m.id, "present", "Ирсэн",    { active: "bg-green-500 text-white", idle: "bg-green-500/10 text-green-400 hover:bg-green-500/20" })}
-                  {statusBtn(m.id, "late",    "Хоцорсон", { active: "bg-amber-500 text-white",  idle: "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20" })}
-                  {statusBtn(m.id, "absent",  "Тасалсан", { active: "bg-red-500 text-white",    idle: "bg-red-500/10 text-red-400 hover:bg-red-500/20" })}
-                </div>
+                {m.hasApprovedLeave ? (
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
+                                   bg-teal-500/15 text-teal-400 border border-teal-500/25">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Чөлөөтэй
+                  </span>
+                ) : (
+                  <div className="flex gap-1.5 flex-wrap">
+                    {statusBtn(m.id, "present", "Ирсэн",    { active: "bg-green-500 text-white", idle: "bg-green-500/10 text-green-400 hover:bg-green-500/20" })}
+                    {statusBtn(m.id, "late",    "Хоцорсон", { active: "bg-amber-500 text-white",  idle: "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20" })}
+                    {statusBtn(m.id, "absent",  "Тасалсан", { active: "bg-red-500 text-white",    idle: "bg-red-500/10 text-red-400 hover:bg-red-500/20" })}
+                  </div>
+                )}
               </div>
             );
           })}

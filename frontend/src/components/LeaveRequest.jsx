@@ -65,7 +65,7 @@ function fmtDate(iso) {
 }
 
 // ── Session card (TrainCardFull style, clickable) ─────────────────────────────
-function LeaveSessionCard({ s, date, isSelected, hasLeave, isPast, onClick }) {
+function LeaveSessionCard({ s, date, isSelected, hasLeave, isPending, isPast, onClick }) {
   const a    = accentCls[s.accent] || accentCls.orange;
   const mins = toMin(s.end) - toMin(s.start);
   const initials = s.coach ? s.coach.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase() : "?";
@@ -74,7 +74,7 @@ function LeaveSessionCard({ s, date, isSelected, hasLeave, isPast, onClick }) {
     <button onClick={isPast ? undefined : onClick} disabled={isPast}
       className={`w-full text-left flex rounded-2xl overflow-hidden transition-all
         ${isPast ? "opacity-40 cursor-not-allowed" : isSelected ? `ring-2 ${a.ring}` : "opacity-90 hover:opacity-100"}`}>
-      <div className={`w-2 shrink-0 ${hasLeave ? "bg-green-500" : a.dot}`} />
+      <div className={`w-2 shrink-0 ${hasLeave ? "bg-green-500" : isPending ? "bg-amber-400" : a.dot}`} />
       <div className={`flex-1 border border-l-0 border-white/10 rounded-r-2xl px-4 py-3.5
         ${isSelected ? a.bg : "bg-[#1c1c1c]"}`}>
         {/* Top: coach avatar + name | date */}
@@ -137,7 +137,12 @@ function LeaveSessionCard({ s, date, isSelected, hasLeave, isPast, onClick }) {
               ЧӨЛӨӨТЭЙ
             </span>
           )}
-          {!isPast && isSelected && !hasLeave && (
+          {!isPast && isPending && !hasLeave && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20 font-bold shrink-0">
+              ХҮЛЭЭГДЭЖ БАЙНА
+            </span>
+          )}
+          {!isPast && isSelected && !hasLeave && !isPending && (
             <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold shrink-0 ${a.badge}`}>
               СОНГОСОН
             </span>
@@ -150,7 +155,7 @@ function LeaveSessionCard({ s, date, isSelected, hasLeave, isPast, onClick }) {
 
 // ── Week view ─────────────────────────────────────────────────────────────────
 function WeekView({ sessions, todayIso, weekDates, weekIsoDates, weekOffset, weekLabel,
-                    leaveByKey, selectedSession, selectedDate, onSelect, onPrev, onNext }) {
+                    leaveByKey, pendingByKey, selectedSession, selectedDate, onSelect, onPrev, onNext }) {
   const todayDayIdx = weekIsoDates.indexOf(todayIso);
   const [selDay, setSelDay] = useState(() => todayDayIdx >= 0 ? todayDayIdx : 0);
 
@@ -195,6 +200,8 @@ function WeekView({ sessions, todayIso, weekDates, weekIsoDates, weekOffset, wee
           const hasSess    = sessions.some(s => s.dateIdx === i);
           const hasLeave   = hasSess && sessions.filter(s => s.dateIdx === i)
                                .some(s => leaveByKey[`${s.classId}|${weekIsoDates[i]}`]);
+          const hasPending = !hasLeave && hasSess && sessions.filter(s => s.dateIdx === i)
+                               .some(s => pendingByKey[`${s.classId}|${weekIsoDates[i]}`]);
           return (
             <button key={i} onClick={() => setSelDay(i)}
               className={`flex flex-col items-center py-2.5 px-1 rounded-2xl transition-all
@@ -207,10 +214,10 @@ function WeekView({ sessions, todayIso, weekDates, weekIsoDates, weekOffset, wee
                 ${isSelected ? "text-black" : isToday ? "text-orange-400" : "text-gray-300"}`}>
                 {weekDates[i].getDate()}
               </span>
-              {(hasSess || hasLeave) && (
+              {hasSess && (
                 <div className="flex gap-0.5 mt-1">
                   <span className={`w-1 h-1 rounded-full
-                    ${isSelected ? "bg-gray-400" : hasLeave ? "bg-green-500" : "bg-orange-500"}`} />
+                    ${isSelected ? "bg-gray-400" : hasLeave ? "bg-green-500" : hasPending ? "bg-amber-400" : "bg-orange-500"}`} />
                 </div>
               )}
             </button>
@@ -228,12 +235,13 @@ function WeekView({ sessions, todayIso, weekDates, weekIsoDates, weekOffset, wee
         <div className="space-y-3">
           {daySessions.map(s => {
             const hasLeave  = !!leaveByKey[`${s.classId}|${colIso}`];
+            const isPending = !hasLeave && !!pendingByKey[`${s.classId}|${colIso}`];
             const isSel     = selectedSession?.id === s.id && selectedDate === colIso;
             const isPast    = colIso < todayIso ||
                               (colIso === todayIso && toMin(s.start) <= currentMins);
             return (
               <LeaveSessionCard key={s.id} s={s} date={colIso} isSelected={isSel}
-                hasLeave={hasLeave} isPast={isPast}
+                hasLeave={hasLeave} isPending={isPending} isPast={isPast}
                 onClick={() => onSelect(s, colIso)} />
             );
           })}
@@ -245,7 +253,7 @@ function WeekView({ sessions, todayIso, weekDates, weekIsoDates, weekOffset, wee
 
 // ── Month view ────────────────────────────────────────────────────────────────
 function MonthView({ sessions, monthGrid, monthRef, monthLabel, todayStr,
-                     leaveByKey, onPrev, onNext, onDayClick }) {
+                     leaveByKey, pendingByKey, onPrev, onNext, onDayClick }) {
   const dayNames = ["Да", "Мя", "Лх", "Пү", "Ба", "Бя", "Ня"];
 
   return (
@@ -300,10 +308,11 @@ function MonthView({ sessions, monthGrid, monthRef, monthLabel, todayStr,
                 {day && hasSess && (
                   <div className="flex gap-0.5 mt-0.5 flex-wrap justify-center">
                     {cellSessions.slice(0, 3).map((s, si) => {
-                      const hasLv = cellStr && leaveByKey[`${s.classId}|${cellStr}`];
+                      const hasLv  = cellStr && leaveByKey[`${s.classId}|${cellStr}`];
+                      const isPend = !hasLv && cellStr && pendingByKey[`${s.classId}|${cellStr}`];
                       return (
                         <span key={si}
-                          className={`w-1.5 h-1.5 rounded-full ${hasLv ? "bg-green-500" : (accentCls[s.accent]?.dot || "bg-orange-500")}`} />
+                          className={`w-1.5 h-1.5 rounded-full ${hasLv ? "bg-green-500" : isPend ? "bg-amber-400" : (accentCls[s.accent]?.dot || "bg-orange-500")}`} />
                       );
                     })}
                   </div>
@@ -331,13 +340,17 @@ function MonthView({ sessions, monthGrid, monthRef, monthLabel, todayStr,
           <span className="w-2 h-2 rounded-full bg-green-500" />
           <span className="text-gray-500 text-xs">Чөлөөтэй</span>
         </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-amber-400" />
+          <span className="text-gray-500 text-xs">Хүлээгдэж буй</span>
+        </div>
       </div>
     </div>
   );
 }
 
 // ── Leave form panel ──────────────────────────────────────────────────────────
-function LeaveForm({ session, date, leaveByKey, onSubmit, onClose }) {
+function LeaveForm({ session, date, leaveByKey, pendingByKey, onSubmit, onClose }) {
   const [reason,     setReason]     = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error,      setError]      = useState("");
@@ -347,7 +360,8 @@ function LeaveForm({ session, date, leaveByKey, onSubmit, onClose }) {
   const handleSubmit = async () => {
     if (!reason.trim()) { setError("Шалтгаанаа оруулна уу"); return; }
     const key = `${session.classId}|${date}`;
-    if (leaveByKey[key]) { setError("Энэ өдрийн чөлөөний хүсэлт аль хэдийн илгээгдсэн байна"); return; }
+    if (leaveByKey[key])   { setError("Энэ өдрийн чөлөөний хүсэлт аль хэдийн зөвшөөрөгдсөн байна"); return; }
+    if (pendingByKey[key]) { setError("Энэ өдрийн чөлөөний хүсэлт хүлээгдэж байна"); return; }
     setSubmitting(true); setError("");
     try {
       await onSubmit({ classId: session.classId, date, reason });
@@ -511,11 +525,15 @@ function LeaveRequest({ user }) {
 
   useEffect(() => { fetchAll(); }, []);
 
-  // Quick lookup: "classId|date" → leave record
-  const leaveByKey = {};
+  // Quick lookup: "classId|date" → leave record (approved only → ЧӨЛӨӨТЭЙ)
+  const leaveByKey   = {};
+  const pendingByKey = {};
   leaveList.forEach(lr => {
     const d = parseLocal(lr.date);
-    if (d) leaveByKey[`${lr.classId}|${toDateStr(d)}`] = lr;
+    if (!d) return;
+    const key = `${lr.classId}|${toDateStr(d)}`;
+    if (lr.status === "approved") leaveByKey[key]   = lr;
+    if (lr.status === "pending")  pendingByKey[key] = lr;
   });
 
   // Dates
@@ -642,6 +660,7 @@ function LeaveRequest({ user }) {
                       weekOffset={weekOffset}
                       weekLabel={weekLabel}
                       leaveByKey={leaveByKey}
+                      pendingByKey={pendingByKey}
                       selectedSession={selectedSess}
                       selectedDate={selectedDate}
                       onSelect={handleSessionSelect}
@@ -657,6 +676,7 @@ function LeaveRequest({ user }) {
                       monthLabel={monthLabel}
                       todayStr={todayStr}
                       leaveByKey={leaveByKey}
+                      pendingByKey={pendingByKey}
                       onPrev={() => setMonthOffset(p => p - 1)}
                       onNext={() => setMonthOffset(p => p + 1)}
                       onDayClick={handleDayClick}
@@ -673,6 +693,7 @@ function LeaveRequest({ user }) {
               session={selectedSess}
               date={selectedDate}
               leaveByKey={leaveByKey}
+              pendingByKey={pendingByKey}
               onSubmit={handleSubmit}
               onClose={() => { setSelectedSess(null); setSelectedDate(null); }}
             />

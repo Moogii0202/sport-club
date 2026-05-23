@@ -2,13 +2,19 @@ const { Pool } = require("pg");
 const bcrypt   = require("bcrypt");
 require("dotenv").config();
 
-const pool = new Pool({
-  host:     process.env.DB_HOST     || "localhost",
-  port:     parseInt(process.env.DB_PORT || "5432"),
-  database: process.env.DB_NAME     || "sportclub",
-  user:     process.env.DB_USER     || "postgres",
-  password: String(process.env.DB_PASSWORD ?? ""),
-});
+// Railway provides DATABASE_URL; local dev uses individual vars
+const pool = process.env.DATABASE_URL
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+    })
+  : new Pool({
+      host:     process.env.DB_HOST     || "localhost",
+      port:     parseInt(process.env.DB_PORT || "5432"),
+      database: process.env.DB_NAME     || "sportclub",
+      user:     process.env.DB_USER     || "postgres",
+      password: String(process.env.DB_PASSWORD ?? ""),
+    });
 
 pool.connect()
   .then(client => { console.log("✅ PostgreSQL-д холбогдлоо"); client.release(); })
@@ -50,11 +56,21 @@ async function initDB() {
         id              SERIAL PRIMARY KEY,
         "userId"        INTEGER NOT NULL REFERENCES users(id),
         "classId"       INTEGER NOT NULL REFERENCES class_groups(id),
+        "scheduleId"    INTEGER REFERENCES schedule(id),
         notes           TEXT,
         status          TEXT DEFAULT 'pending',
         "submittedAt"   TIMESTAMPTZ DEFAULT NOW(),
         "reviewedAt"    TIMESTAMPTZ
       )
+    `);
+
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                       WHERE table_name='enrollments' AND column_name='scheduleId') THEN
+          ALTER TABLE enrollments ADD COLUMN "scheduleId" INTEGER REFERENCES schedule(id);
+        END IF;
+      END $$;
     `);
 
     await client.query(`
@@ -103,8 +119,19 @@ async function initDB() {
         date            TEXT NOT NULL,
         "startTime"     TEXT,
         "endTime"       TEXT,
-        location        TEXT
+        location        TEXT,
+        "scheduleId"    INTEGER REFERENCES schedule(id)
       )
+    `);
+
+    // Migration: add scheduleId to training_sessions if missing
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                       WHERE table_name='training_sessions' AND column_name='scheduleId') THEN
+          ALTER TABLE training_sessions ADD COLUMN "scheduleId" INTEGER REFERENCES schedule(id);
+        END IF;
+      END $$;
     `);
 
     await client.query(`
@@ -154,17 +181,31 @@ async function initDB() {
         )
     `);
 
-    // Migration: add unique constraint on training_sessions (classId, coachId, date)
+    // Migration: drop old (classId, coachId, date) unique constraint — replaced by (scheduleId, date)
     await client.query(`
       DO $$ BEGIN
-        IF NOT EXISTS (
+        IF EXISTS (
           SELECT 1 FROM pg_constraint
           WHERE conname = 'training_sessions_class_coach_date_unique'
             AND conrelid = 'training_sessions'::regclass
         ) THEN
           ALTER TABLE training_sessions
-            ADD CONSTRAINT training_sessions_class_coach_date_unique
-            UNIQUE ("classId", "coachId", date);
+            DROP CONSTRAINT training_sessions_class_coach_date_unique;
+        END IF;
+      END $$;
+    `);
+
+    // Migration: add unique constraint on training_sessions (scheduleId, date)
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conname = 'training_sessions_schedule_date_unique'
+            AND conrelid = 'training_sessions'::regclass
+        ) THEN
+          ALTER TABLE training_sessions
+            ADD CONSTRAINT training_sessions_schedule_date_unique
+            UNIQUE ("scheduleId", date);
         END IF;
       END $$;
     `);
@@ -214,8 +255,22 @@ async function initDB() {
         features    JSONB DEFAULT '[]'::jsonb,
         fee         INTEGER DEFAULT 0,
         accent      TEXT DEFAULT 'orange',
-        "sortOrder" INTEGER DEFAULT 0
+        "sortOrder" INTEGER DEFAULT 0,
+        "startDate" TEXT,
+        "endDate"   TEXT
       )
+    `);
+
+    // Migration: add startDate/endDate to levels if they don't exist
+    await client.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='levels' AND column_name='startDate') THEN
+          ALTER TABLE levels ADD COLUMN "startDate" TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='levels' AND column_name='endDate') THEN
+          ALTER TABLE levels ADD COLUMN "endDate" TEXT;
+        END IF;
+      END $$;
     `);
 
     // Seed: default levels

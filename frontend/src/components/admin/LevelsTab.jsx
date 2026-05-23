@@ -21,6 +21,7 @@ const SWATCH = {
 
 const EMPTY_FORM = {
   name: "", badge: "", description: "", features: [""], fee: "", accent: "orange", sortOrder: "",
+  startDate: "", endDate: "",
 };
 
 function LevelForm({ initial, onSave, onCancel, saving, error }) {
@@ -39,6 +40,8 @@ function LevelForm({ initial, onSave, onCancel, saving, error }) {
       fee:       parseInt(form.fee)       || 0,
       sortOrder: parseInt(form.sortOrder) || 0,
       features:  form.features.filter(f => f.trim()),
+      startDate: form.startDate || null,
+      endDate:   form.endDate   || null,
     };
     onSave(payload);
   };
@@ -100,6 +103,22 @@ function LevelForm({ initial, onSave, onCancel, saving, error }) {
           <label className="text-gray-500 text-xs uppercase tracking-widest block mb-1.5">Эрэмбэ</label>
           <input className={inputCls} type="number" min="0" value={form.sortOrder}
             onChange={e => set("sortOrder", e.target.value)} placeholder="1" />
+        </div>
+      </div>
+
+      <div className="border-t border-white/8 pt-4">
+        <p className="text-gray-500 text-xs uppercase tracking-widest mb-3">Элсэлтийн хугацаа</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-gray-500 text-xs uppercase tracking-widest block mb-1.5">Эхлэх огноо</label>
+            <input className={inputCls} type="date" value={form.startDate || ""}
+              onChange={e => set("startDate", e.target.value)} />
+          </div>
+          <div>
+            <label className="text-gray-500 text-xs uppercase tracking-widest block mb-1.5">Дуусах огноо</label>
+            <input className={inputCls} type="date" value={form.endDate || ""}
+              onChange={e => set("endDate", e.target.value)} />
+          </div>
         </div>
       </div>
 
@@ -242,6 +261,7 @@ export default function LevelsTab() {
                       name: lv.name, badge: lv.badge, description: lv.description,
                       features: Array.isArray(lv.features) && lv.features.length ? lv.features : [""],
                       fee: lv.fee, accent: lv.accent, sortOrder: lv.sortOrder,
+                      startDate: lv.startDate || "", endDate: lv.endDate || "",
                     }}
                     onSave={handleSave}
                     onCancel={() => setMode(null)}
@@ -275,6 +295,17 @@ export default function LevelsTab() {
                                   {f}
                                 </span>
                               ))}
+                            </div>
+                          )}
+                          {(lv.startDate || lv.endDate) && (
+                            <div className="flex items-center gap-1.5 mt-2">
+                              <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round"
+                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              <span className="text-[11px] text-gray-500">
+                                {lv.startDate || "—"} → {lv.endDate || "—"}
+                              </span>
                             </div>
                           )}
                         </div>

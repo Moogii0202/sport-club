@@ -44,7 +44,7 @@ export default function StatsTab() {
   if (members.length === 0) {
     return (
       <div className="text-center py-20">
-        <p className="text-3xl mb-3">📊</p>
+        <p className="text-3xl mb-3"></p>
         <p className="text-gray-600 text-sm">Статистик мэдээлэл байхгүй байна</p>
       </div>
     );

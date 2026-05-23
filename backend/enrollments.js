@@ -6,22 +6,25 @@ const router = express.Router();
 
 // POST — Submit enrollment (player)
 router.post("/", authenticateToken, async (req, res) => {
-  const { classId, notes } = req.body;
+  const { classId, scheduleId, notes } = req.body;
   if (!classId) return res.status(400).json({ error: "Бүлэг сонгоно уу" });
 
   try {
-    const approved = await db.query(
-      `SELECT id FROM enrollments WHERE "userId"=$1 AND "classId"=$2 AND status = 'approved'`,
-      [req.user.id, classId]
-    );
-    if (approved.rows.length > 0)
-      return res.status(400).json({ error: "Та энэ бүлэгт аль хэдийн хүсэлт илгээсэн байна" });
+    // Uniqueness: per scheduleId if provided, otherwise per classId
+    const dupCheck = scheduleId
+      ? `SELECT id FROM enrollments WHERE "userId"=$1 AND "scheduleId"=$2 AND status='approved'`
+      : `SELECT id FROM enrollments WHERE "userId"=$1 AND "classId"=$2 AND "scheduleId" IS NULL AND status='approved'`;
+    const dupParam = scheduleId ? [req.user.id, scheduleId] : [req.user.id, classId];
 
-    // Upgrade any stuck pending enrollment instead of inserting a duplicate
-    const pending = await db.query(
-      `SELECT id FROM enrollments WHERE "userId"=$1 AND "classId"=$2 AND status = 'pending'`,
-      [req.user.id, classId]
-    );
+    const approved = await db.query(dupCheck, dupParam);
+    if (approved.rows.length > 0)
+      return res.status(400).json({ error: "Та энэ цагт аль хэдийн бүртгүүлсэн байна" });
+
+    const pendingCheck = scheduleId
+      ? `SELECT id FROM enrollments WHERE "userId"=$1 AND "scheduleId"=$2 AND status='pending'`
+      : `SELECT id FROM enrollments WHERE "userId"=$1 AND "classId"=$2 AND "scheduleId" IS NULL AND status='pending'`;
+
+    const pending = await db.query(pendingCheck, dupParam);
     if (pending.rows.length > 0) {
       await db.query(
         `UPDATE enrollments SET status='approved', "reviewedAt"=NOW() WHERE id=$1`,
@@ -31,9 +34,9 @@ router.post("/", authenticateToken, async (req, res) => {
     }
 
     const result = await db.query(
-      `INSERT INTO enrollments ("userId","classId",notes,status,"reviewedAt")
-       VALUES ($1,$2,$3,'approved',NOW()) RETURNING id`,
-      [req.user.id, classId, notes || null]
+      `INSERT INTO enrollments ("userId","classId","scheduleId",notes,status,"reviewedAt")
+       VALUES ($1,$2,$3,$4,'approved',NOW()) RETURNING id`,
+      [req.user.id, classId, scheduleId || null, notes || null]
     );
     res.json({ message: "Элсэлт баталгаажлаа", enrollId: result.rows[0].id });
   } catch (err) {

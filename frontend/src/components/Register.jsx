@@ -96,10 +96,7 @@ function Register() {
 
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-orange-500/10 rounded-2xl flex items-center justify-center
-                            text-orange-400 mx-auto mb-4">
-              <IcoBall />
-            </div>
+            <img src="/volleyball_club_logo_v2.svg" alt="Logo" className="h-28 w-auto mx-auto mb-5" />
             <h2 className="text-2xl font-bold text-white">Бүртгүүлэх</h2>
             <p className="text-gray-500 text-sm mt-1">Volleyball Club-д тавтай морил</p>
           </div>

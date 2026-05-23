@@ -4,7 +4,7 @@ import { accentCls, groupAccent, LEVELS, WEEKDAYS, DAY_IDX, inputCls } from "./s
 
 function toMin(t) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
 
-function SessionDetailPanel({ session, onDelete, onClose, onSaved, halls }) {
+function SessionDetailPanel({ session, onDelete, onClose, onSaved, halls, levelDates = {} }) {
   const a = accentCls[session.accent];
   const selCls = `w-full px-3 py-2.5 bg-black/30 border border-white/10 rounded-xl text-white
     text-sm focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/30 transition`;
@@ -39,8 +39,13 @@ function SessionDetailPanel({ session, onDelete, onClose, onSaved, halls }) {
     if (!form.startTime || !form.endTime) { setError("Цагийг оруулна уу"); return; }
     if (form.startTime >= form.endTime)   { setError("Эхлэх цаг дуусах цагаас өмнө байх ёстой"); return; }
     setSaving(true); setError("");
+    const dates = levelDates[form.level] || {};
     try {
-      await api.put(`/schedule/${session.id}`, form);
+      await api.put(`/schedule/${session.id}`, {
+        ...form,
+        startDate: dates.startDate || form.startDate || null,
+        endDate:   dates.endDate   || form.endDate   || null,
+      });
       onSaved();
       setEditing(false);
     } catch (err) {
@@ -83,6 +88,24 @@ function SessionDetailPanel({ session, onDelete, onClose, onSaved, halls }) {
             <InfoRow label="Эхлэх огноо"  value={session.startDate} />
             <InfoRow label="Дуусах огноо" value={session.endDate} />
             <InfoRow label="Дүүргэлт" value={session.maxCapacity ? `${session.maxCapacity} хүн` : null} />
+            <div className="bg-black/20 rounded-xl px-4 py-3">
+              <p className="text-gray-600 text-[10px] uppercase tracking-wider mb-1">Суудал</p>
+              <div className="flex items-center gap-2">
+                <span className={`font-bold text-sm
+                  ${session.enrolledCount >= session.maxCapacity ? "text-red-400"
+                  : session.enrolledCount >= session.maxCapacity * 0.8 ? "text-yellow-400"
+                  : "text-green-400"}`}>
+                  {session.enrolledCount ?? 0} / {session.maxCapacity ?? 20}
+                </span>
+                <div className="flex-1 h-1.5 rounded-full bg-white/8 overflow-hidden">
+                  <div className={`h-full rounded-full transition-all
+                    ${session.enrolledCount >= session.maxCapacity ? "bg-red-500"
+                    : session.enrolledCount >= session.maxCapacity * 0.8 ? "bg-yellow-500"
+                    : "bg-green-500"}`}
+                    style={{ width: `${Math.min(100, Math.round(((session.enrolledCount ?? 0) / (session.maxCapacity || 1)) * 100))}%` }} />
+                </div>
+              </div>
+            </div>
           </div>
           <div className="flex gap-2">
             <button onClick={() => { setEditing(true); setError(""); setForm(initForm); }}
@@ -140,14 +163,34 @@ function SessionDetailPanel({ session, onDelete, onClose, onSaved, halls }) {
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1.5">Эхлэх огноо</p>
-              <input type="date" value={form.startDate}
-                onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))} className={`${selCls} max-w-full`} />
+              <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1.5">
+                Эхлэх огноо
+                <span className="ml-1.5 text-orange-400/70 normal-case tracking-normal font-normal">Админ тогтооно</span>
+              </p>
+              <div className={`${selCls} flex items-center gap-2 cursor-not-allowed select-none max-w-full`}>
+                <svg className="w-3.5 h-3.5 text-gray-600 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                {levelDates[form.level]?.startDate
+                  ? <span className="text-white text-sm">{levelDates[form.level].startDate}</span>
+                  : <span className="text-gray-600 text-sm italic">Тогтоогүй</span>
+                }
+              </div>
             </div>
             <div className="min-w-0">
-              <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1.5">Дуусах огноо</p>
-              <input type="date" value={form.endDate}
-                onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))} className={`${selCls} max-w-full`} />
+              <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1.5">
+                Дуусах огноо
+                <span className="ml-1.5 text-orange-400/70 normal-case tracking-normal font-normal">Админ тогтооно</span>
+              </p>
+              <div className={`${selCls} flex items-center gap-2 cursor-not-allowed select-none max-w-full`}>
+                <svg className="w-3.5 h-3.5 text-gray-600 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                {levelDates[form.level]?.endDate
+                  ? <span className="text-white text-sm">{levelDates[form.level].endDate}</span>
+                  : <span className="text-gray-600 text-sm italic">Тогтоогүй</span>
+                }
+              </div>
             </div>
             <div className="sm:col-span-2">
               <p className="text-gray-500 text-[10px] uppercase tracking-wider mb-1.5">Анги дүүргэлт (хамгийн их хүн)</p>
@@ -235,6 +278,7 @@ export default function ScheduleTab({ onAttendance }) {
   const [daySchedules,  setDaySchedules]  = useState([]);
   const [dayLoading,    setDayLoading]    = useState(false);
   const [halls,         setHalls]         = useState([]);
+  const [levelDates,    setLevelDates]    = useState({});
   const [weekOffset,    setWeekOffset]    = useState(0);
   const [monthOffset,   setMonthOffset]   = useState(0);
 
@@ -255,10 +299,28 @@ export default function ScheduleTab({ onAttendance }) {
     api.get("/halls")
       .then(data => setHalls(Array.isArray(data) ? data : []))
       .catch(() => setHalls([]));
+    api.get("/levels")
+      .then(data => {
+        const map = {};
+        (Array.isArray(data) ? data : []).forEach(lv => {
+          map[lv.name] = { startDate: lv.startDate || "", endDate: lv.endDate || "" };
+        });
+        setLevelDates(map);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
     if (!showForm) return;
+    // Auto-fill dates from admin-set level dates when form opens
+    const dates = levelDates[form.level] || {};
+    if (dates.startDate || dates.endDate) {
+      setForm(p => ({
+        ...p,
+        startDate: p.startDate || dates.startDate || "",
+        endDate:   p.endDate   || dates.endDate   || "",
+      }));
+    }
     setDaySchedules([]);
     setDayLoading(true);
     api.get(`/schedule/by-day?day=${encodeURIComponent(form.dayOfWeek)}`)
@@ -290,7 +352,8 @@ export default function ScheduleTab({ onAttendance }) {
     level:       s.level,
     startDate:   fmtApiDate(s.startDate),
     endDate:     fmtApiDate(s.endDate),
-    maxCapacity: s.maxCapacity || 20,
+    maxCapacity:   s.maxCapacity || 20,
+    enrolledCount: Number(s.enrolledCount) || 0,
   }));
 
   const sessionsByIdx = {};
@@ -349,8 +412,13 @@ export default function ScheduleTab({ onAttendance }) {
     if (!form.startTime || !form.endTime) { setFormError("Эхлэх болон дуусах цагийг оруулна уу"); return; }
     if (form.startTime >= form.endTime)   { setFormError("Эхлэх цаг дуусах цагаас өмнө байх ёстой"); return; }
     setSaving(true); setFormError("");
+    const dates = levelDates[form.level] || {};
     try {
-      await api.post("/schedule", form);
+      await api.post("/schedule", {
+        ...form,
+        startDate: dates.startDate || form.startDate || null,
+        endDate:   dates.endDate   || form.endDate   || null,
+      });
       await fetchSchedule();
       setShowForm(false);
       setForm(EMPTY_FORM);
@@ -430,6 +498,13 @@ export default function ScheduleTab({ onAttendance }) {
                       <p className={`text-[10px] font-bold ${a.text}`}>{s.start}–{s.end}</p>
                       <p className="text-white text-[10px] font-semibold leading-tight mt-0.5">{s.group}</p>
                       <p className="text-gray-500 text-[9px] mt-0.5 truncate">📍{s.location}</p>
+                      <div className={`flex items-center gap-0.5 mt-1 text-[9px] font-bold
+                        ${s.enrolledCount >= s.maxCapacity ? "text-red-400" : s.enrolledCount >= s.maxCapacity * 0.8 ? "text-yellow-400" : a.text}`}>
+                        <svg className="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/>
+                        </svg>
+                        {s.enrolledCount}/{s.maxCapacity}
+                      </div>
                     </button>
                   );
                 })}
@@ -534,10 +609,20 @@ export default function ScheduleTab({ onAttendance }) {
             </button>
           </div>
 
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-gray-500 text-xs uppercase tracking-wider block mb-1.5">Түвшин</label>
-              <select value={form.level} onChange={e => setForm(p => ({ ...p, level: e.target.value }))} className={selCls}>
+              <select value={form.level} onChange={e => {
+                const lvl = e.target.value;
+                const dates = levelDates[lvl] || {};
+                setForm(p => ({
+                  ...p,
+                  level:     lvl,
+                  startDate: dates.startDate || "",
+                  endDate:   dates.endDate   || "",
+                }));
+              }} className={selCls}>
                 {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
             </div>
@@ -569,12 +654,34 @@ export default function ScheduleTab({ onAttendance }) {
               )}
             </div>
             <div className="min-w-0">
-              <label className="text-gray-500 text-xs uppercase tracking-wider block mb-1.5">Эхлэх огноо</label>
-              <input type="date" value={form.startDate} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))} className={`${selCls} max-w-full`} />
+              <label className="text-gray-500 text-xs uppercase tracking-wider block mb-1.5">
+                Эхлэх огноо
+                <span className="ml-1.5 text-[10px] text-orange-400/70 normal-case tracking-normal font-normal">Админ тогтооно</span>
+              </label>
+              <div className={`${selCls} flex items-center gap-2 cursor-not-allowed select-none max-w-full`}>
+                <svg className="w-3.5 h-3.5 text-gray-600 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                {levelDates[form.level]?.startDate
+                  ? <span className="text-white text-sm">{levelDates[form.level].startDate}</span>
+                  : <span className="text-gray-600 text-sm italic">Тогтоогүй</span>
+                }
+              </div>
             </div>
             <div className="min-w-0">
-              <label className="text-gray-500 text-xs uppercase tracking-wider block mb-1.5">Дуусах огноо</label>
-              <input type="date" value={form.endDate} onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))} className={`${selCls} max-w-full`} />
+              <label className="text-gray-500 text-xs uppercase tracking-wider block mb-1.5">
+                Дуусах огноо
+                <span className="ml-1.5 text-[10px] text-orange-400/70 normal-case tracking-normal font-normal">Админ тогтооно</span>
+              </label>
+              <div className={`${selCls} flex items-center gap-2 cursor-not-allowed select-none max-w-full`}>
+                <svg className="w-3.5 h-3.5 text-gray-600 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                {levelDates[form.level]?.endDate
+                  ? <span className="text-white text-sm">{levelDates[form.level].endDate}</span>
+                  : <span className="text-gray-600 text-sm italic">Тогтоогүй</span>
+                }
+              </div>
             </div>
             <div className="sm:col-span-2">
               <label className="text-gray-500 text-xs uppercase tracking-wider block mb-1.5">
@@ -696,6 +803,7 @@ export default function ScheduleTab({ onAttendance }) {
           onClose={() => setActiveSession(null)}
           onSaved={() => { fetchSchedule(); setActiveSession(null); }}
           halls={halls}
+          levelDates={levelDates}
         />
       )}
 

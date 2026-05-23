@@ -5,6 +5,31 @@ const { authenticateToken, requireRole } = require("./authMiddleware");
 
 const router = express.Router();
 
+// GET /coaches/public — public: coach list for About page
+router.get("/coaches/public", async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT
+        u.id,
+        u."firstName",
+        u."lastName",
+        u."profileImage",
+        COUNT(DISTINCT cg.id)  AS "classCount",
+        COUNT(DISTINCT e.id)   FILTER (WHERE e.status = 'approved') AS "memberCount",
+        STRING_AGG(DISTINCT cg.level, ', ' ORDER BY cg.level) AS levels
+      FROM users u
+      LEFT JOIN class_groups cg ON cg."coachId" = u.id
+      LEFT JOIN enrollments e   ON e."classId"  = cg.id
+      WHERE u.role = 'coach'
+      GROUP BY u.id
+      ORDER BY u."lastName", u."firstName"
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /coaches — list all coaches
 router.get("/coaches", authenticateToken, requireRole("admin"), async (req, res) => {
   try {
@@ -317,15 +342,15 @@ router.get("/levels", authenticateToken, requireRole("admin"), async (req, res) 
 
 // POST /levels — create a new level
 router.post("/levels", authenticateToken, requireRole("admin"), async (req, res) => {
-  const { name, badge, description, features, fee, accent, sortOrder } = req.body;
+  const { name, badge, description, features, fee, accent, sortOrder, startDate, endDate } = req.body;
   if (!name || !name.trim())
     return res.status(400).json({ error: "Түвшний нэр заавал шаардлагатай" });
   try {
     const result = await db.query(
-      `INSERT INTO levels (name, badge, description, features, fee, accent, "sortOrder")
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      `INSERT INTO levels (name, badge, description, features, fee, accent, "sortOrder", "startDate", "endDate")
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
       [name.trim(), badge || "", description || "", JSON.stringify(features || []),
-       fee || 0, accent || "orange", sortOrder || 0]
+       fee || 0, accent || "orange", sortOrder || 0, startDate || null, endDate || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -337,15 +362,16 @@ router.post("/levels", authenticateToken, requireRole("admin"), async (req, res)
 
 // PUT /levels/:id — update a level
 router.put("/levels/:id", authenticateToken, requireRole("admin"), async (req, res) => {
-  const { name, badge, description, features, fee, accent, sortOrder } = req.body;
+  const { name, badge, description, features, fee, accent, sortOrder, startDate, endDate } = req.body;
   if (!name || !name.trim())
     return res.status(400).json({ error: "Түвшний нэр заавал шаардлагатай" });
   try {
     const result = await db.query(
-      `UPDATE levels SET name=$1, badge=$2, description=$3, features=$4, fee=$5, accent=$6, "sortOrder"=$7
-       WHERE id=$8 RETURNING *`,
+      `UPDATE levels SET name=$1, badge=$2, description=$3, features=$4, fee=$5, accent=$6,
+        "sortOrder"=$7, "startDate"=$8, "endDate"=$9
+       WHERE id=$10 RETURNING *`,
       [name.trim(), badge || "", description || "", JSON.stringify(features || []),
-       fee || 0, accent || "orange", sortOrder || 0, req.params.id]
+       fee || 0, accent || "orange", sortOrder || 0, startDate || null, endDate || null, req.params.id]
     );
     if (!result.rows.length)
       return res.status(404).json({ error: "Түвшин олдсонгүй" });

@@ -27,19 +27,44 @@ router.get("/", authenticateToken, requireRole("coach"), async (req, res) => {
             WHERE a."userId"   = u.id
               AND ts."classId" = cg.id
               AND ts."coachId" = $1
-          ) _d
+            UNION
+            SELECT TO_CHAR(lr.date::date, 'YYYY-MM-DD')
+            FROM leave_requests lr
+            WHERE lr."userId"  = u.id
+              AND lr."classId" = cg.id
+              AND lr.status    = 'approved'
+              AND EXISTS (
+                SELECT 1 FROM training_sessions ts2
+                WHERE ts2."classId" = cg.id
+                  AND ts2."coachId" = $1
+                  AND ts2.date = TO_CHAR(lr.date::date, 'YYYY-MM-DD')
+              )
+          ) _total
         ) AS "totalSessions",
         (
           SELECT COUNT(*) FROM (
-            SELECT DISTINCT ON (ts.date) ts.date, a.status
-            FROM attendance a
-            JOIN training_sessions ts ON a."sessionId" = ts.id
-            WHERE a."userId"   = u.id
-              AND ts."classId" = cg.id
-              AND ts."coachId" = $1
-            ORDER BY ts.date, ts.id DESC
-          ) _d
-          WHERE _d.status IN ('present', 'late')
+            SELECT DISTINCT _d.date_val FROM (
+              SELECT DISTINCT ON (ts.date) ts.date AS date_val, a.status
+              FROM attendance a
+              JOIN training_sessions ts ON a."sessionId" = ts.id
+              WHERE a."userId"   = u.id
+                AND ts."classId" = cg.id
+                AND ts."coachId" = $1
+              ORDER BY ts.date, ts.id DESC
+            ) _d WHERE _d.status IN ('present', 'late')
+            UNION
+            SELECT TO_CHAR(lr.date::date, 'YYYY-MM-DD')
+            FROM leave_requests lr
+            WHERE lr."userId"  = u.id
+              AND lr."classId" = cg.id
+              AND lr.status    = 'approved'
+              AND EXISTS (
+                SELECT 1 FROM training_sessions ts2
+                WHERE ts2."classId" = cg.id
+                  AND ts2."coachId" = $1
+                  AND ts2.date = TO_CHAR(lr.date::date, 'YYYY-MM-DD')
+              )
+          ) _attended
         ) AS "attendedSessions"
       FROM enrollments e
       JOIN users u  ON e."userId"  = u.id
@@ -66,7 +91,10 @@ router.get("/:userId/attendance", authenticateToken, requireRole("coach"), async
         a.location,
         cg.name  AS "group",
         cg.level,
-        a.status
+        CASE
+          WHEN lr.id IS NOT NULL THEN 'on_leave'
+          ELSE a.status
+        END AS status
       FROM (
         SELECT DISTINCT ON (ts."classId", ts.date)
           ts.id         AS "sessionId",
@@ -96,6 +124,10 @@ router.get("/:userId/attendance", authenticateToken, requireRole("coach"), async
         ORDER BY ts."classId", ts.date, ts.id DESC
       ) a
       JOIN class_groups cg ON cg.id = a."classId"
+      LEFT JOIN leave_requests lr ON lr."userId" = $2
+        AND lr."classId" = a."classId"
+        AND TO_CHAR(lr.date::date, 'YYYY-MM-DD') = TO_CHAR(a.date::date, 'YYYY-MM-DD')
+        AND lr.status = 'approved'
       ORDER BY a."date" DESC
       LIMIT 60
     `, [req.user.id, req.params.userId, classId || null]);

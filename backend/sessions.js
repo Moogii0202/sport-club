@@ -34,13 +34,22 @@ router.post("/", authenticateToken, requireRole("coach"), async (req, res) => {
         error: `Өнөөдөр ${todayMn} — энэ хуваарь ${s.dayOfWeek} өдөр байна`
       });
 
-    const ts = await db.query(`
-      INSERT INTO training_sessions ("classId", "coachId", date, "startTime", "endTime", location)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      ON CONFLICT ("classId", "coachId", date) DO UPDATE SET "startTime" = EXCLUDED."startTime"
-      RETURNING id
-    `, [s.classId, req.user.id, today, s.startTime, s.endTime, s.location]);
-    const sessionId = ts.rows[0].id;
+    // Find or create a training session for this specific schedule slot + date
+    const existing = await db.query(`
+      SELECT id FROM training_sessions
+      WHERE "scheduleId" = $1 AND date = $2 AND "coachId" = $3
+    `, [scheduleId, today, req.user.id]);
+
+    let sessionId;
+    if (existing.rows.length > 0) {
+      sessionId = existing.rows[0].id;
+    } else {
+      const ts = await db.query(`
+        INSERT INTO training_sessions ("classId","coachId",date,"startTime","endTime",location,"scheduleId")
+        VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id
+      `, [s.classId, req.user.id, today, s.startTime, s.endTime, s.location, scheduleId]);
+      sessionId = ts.rows[0].id;
+    }
 
     res.json({ sessionId });
   } catch (err) {
@@ -53,7 +62,7 @@ router.get("/:id/members", authenticateToken, requireRole("coach"), async (req, 
   try {
     const ts = await db.query(`
       SELECT ts.id, ts.date, ts."startTime", ts."endTime", ts.location,
-             cg.name AS "className", cg.level, ts."classId"
+             cg.name AS "className", cg.level, ts."classId", ts."scheduleId"
       FROM training_sessions ts
       JOIN class_groups cg ON ts."classId" = cg.id
       WHERE ts.id = $1 AND ts."coachId" = $2
@@ -64,15 +73,25 @@ router.get("/:id/members", authenticateToken, requireRole("coach"), async (req, 
 
     const session = ts.rows[0];
 
+    // Filter by specific schedule slot (new-style) or fallback to classId (legacy)
     const members = await db.query(`
       SELECT u.id, u."firstName", u."lastName", u.phone, u."profileImage",
-             a.status
+             a.status,
+             (lr.id IS NOT NULL) AS "hasApprovedLeave"
       FROM enrollments e
       JOIN users u ON e."userId" = u.id
       LEFT JOIN attendance a ON a."sessionId" = $1 AND a."userId" = u.id
-      WHERE e."classId" = $2 AND e.status = 'approved'
+      LEFT JOIN leave_requests lr ON lr."userId" = u.id
+        AND lr."classId" = $2
+        AND TO_CHAR(lr.date::date, 'YYYY-MM-DD') = $3
+        AND lr.status = 'approved'
+      WHERE e.status = 'approved'
+        AND (
+          ($4::int IS NOT NULL AND e."scheduleId" = $4)
+          OR ($4::int IS NULL AND e."classId" = $2 AND e."scheduleId" IS NULL)
+        )
       ORDER BY u."lastName", u."firstName"
-    `, [req.params.id, session.classId]);
+    `, [req.params.id, session.classId, session.date, session.scheduleId]);
 
     res.json({ session, members: members.rows });
   } catch (err) {

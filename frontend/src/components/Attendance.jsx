@@ -39,6 +39,18 @@ const STATUS_CFG = {
       </svg>
     ),
   },
+  on_leave: {
+    label: "Чөлөөтэй",
+    strip:  "bg-teal-400",
+    banner: "bg-teal-500/5   border-teal-500/15   text-teal-400",
+    badge:  "bg-teal-500/10   text-teal-400   border-teal-500/20",
+    icon: (
+      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round"
+          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    ),
+  },
 };
 
 function parseDate(str) {
@@ -60,7 +72,7 @@ function avgTime(records, field) {
 }
 
 // ── Circular progress ring ────────────────────────────────────────────────────
-function RingChart({ pct, present, late, absent, total }) {
+function RingChart({ pct, present, late, onLeave, absent, total }) {
   const R   = 52;
   const C   = 2 * Math.PI * R;
   const gap = 4;
@@ -68,6 +80,7 @@ function RingChart({ pct, present, late, absent, total }) {
   const segments = [
     { val: present, color: "#22c55e" },
     { val: late,    color: "#fbbf24" },
+    { val: onLeave, color: "#2dd4bf" },
     { val: absent,  color: "#ef4444" },
   ].filter(s => s.val > 0);
 
@@ -134,9 +147,10 @@ function Attendance({ user }) {
 
   const present = records.filter(r => r.status === "present").length;
   const late    = records.filter(r => r.status === "late").length;
+  const onLeave = records.filter(r => r.status === "on_leave").length;
   const absent  = records.filter(r => r.status === "absent").length;
   const total   = records.length;
-  const pct     = total ? Math.round(((present + late) / total) * 100) : 0;
+  const pct     = total ? Math.round(((present + late + onLeave) / total) * 100) : 0;
   const predicate = pct >= 90 ? "Шилдэг" : pct >= 75 ? "Тогтмол" : "Хичээнгүй";
 
   const uniqueGroups = [...new Set(records.map(r => r.group).filter(g => g && g !== "—"))];
@@ -158,17 +172,19 @@ function Attendance({ user }) {
   };
 
   const statCards = [
-    { label: "Нийт хичээл",     value: total,        sub: "бичлэг",    color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" },
-    { label: "Ирсэн",    value: present,      sub: "удаа",      color: "text-green-400",  bg: "bg-green-500/10  border-green-500/20"  },
-    { label: "Хоцорсон",        value: late,         sub: "удаа",      color: "text-amber-400",  bg: "bg-amber-500/10  border-amber-500/20"  },
-    { label: "Тасалсан",        value: absent,       sub: "удаа",      color: "text-red-400",    bg: "bg-red-500/10    border-red-500/20"    },
+    { label: "Нийт хичээл", value: total,   sub: "бичлэг", color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" },
+    { label: "Ирсэн",       value: present, sub: "удаа",   color: "text-green-400",  bg: "bg-green-500/10  border-green-500/20"  },
+    { label: "Хоцорсон",    value: late,    sub: "удаа",   color: "text-amber-400",  bg: "bg-amber-500/10  border-amber-500/20"  },
+    { label: "Чөлөөтэй",   value: onLeave, sub: "удаа",   color: "text-teal-400",   bg: "bg-teal-500/10   border-teal-500/20"   },
+    { label: "Тасалсан",    value: absent,  sub: "удаа",   color: "text-red-400",    bg: "bg-red-500/10    border-red-500/20"    },
   ];
 
   const filterTabs = [
-    { key: "all",     label: "Бүгд",      count: total   },
-    { key: "present", label: "Ирсэн",    count: present },
-    { key: "late",    label: "Хоцорсон",  count: late    },
-    { key: "absent",  label: "Тасалсан",  count: absent  },
+    { key: "all",      label: "Бүгд",     count: total    },
+    { key: "present",  label: "Ирсэн",   count: present  },
+    { key: "late",     label: "Хоцорсон", count: late     },
+    { key: "on_leave", label: "Чөлөөтэй", count: onLeave  },
+    { key: "absent",   label: "Тасалсан", count: absent   },
   ];
 
   return (
@@ -201,14 +217,14 @@ function Attendance({ user }) {
         <div className="bg-[#151515] rounded-2xl border border-white/5 p-6">
           <div className="flex flex-col sm:flex-row items-center gap-8">
             {/* Ring */}
-            <RingChart pct={pct} present={present} late={late} absent={absent} total={total} />
+            <RingChart pct={pct} present={present} late={late} onLeave={onLeave} absent={absent} total={total} />
 
             {/* Details */}
             <div className="flex-1 w-full space-y-4">
               <div className="flex items-center gap-2">
                 <span className="w-1 h-5 rounded-full bg-orange-500 shrink-0" />
                 <span className="text-white font-bold text-sm">Ирцийн хувь</span>
-                <span className="text-gray-500 text-xs tabular-nums">{present + late}/{total}</span>
+                <span className="text-gray-500 text-xs tabular-nums">{present + late + onLeave}/{total}</span>
                 <span className={`ml-auto text-xs font-bold px-2.5 py-1 rounded-full border
                   ${pct >= 90 ? "bg-green-500/10 text-green-400 border-green-500/20"
                   : pct >= 75 ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
@@ -225,6 +241,8 @@ function Attendance({ user }) {
                          style={{ width: `${(present / total) * 100}%` }} />
                     <div className="bg-amber-400 h-full transition-all duration-700"
                          style={{ width: `${(late / total) * 100}%` }} />
+                    <div className="bg-teal-400 h-full transition-all duration-700"
+                         style={{ width: `${(onLeave / total) * 100}%` }} />
                     <div className="bg-red-500 h-full transition-all duration-700"
                          style={{ width: `${(absent / total) * 100}%` }} />
                   </>
@@ -235,9 +253,10 @@ function Attendance({ user }) {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   {[
-                    { label: "Ирсэн",   val: present, pct: total ? Math.round((present/total)*100) : 0, color: "bg-green-500" },
-                    { label: "Хоцорсон", val: late,    pct: total ? Math.round((late/total)*100) : 0,    color: "bg-amber-400" },
-                    { label: "Тасалсан", val: absent,  pct: total ? Math.round((absent/total)*100) : 0,  color: "bg-red-500"   },
+                    { label: "Ирсэн",    val: present, pct: total ? Math.round((present/total)*100) : 0,  color: "bg-green-500" },
+                    { label: "Хоцорсон", val: late,    pct: total ? Math.round((late/total)*100) : 0,     color: "bg-amber-400" },
+                    { label: "Чөлөөтэй", val: onLeave, pct: total ? Math.round((onLeave/total)*100) : 0,  color: "bg-teal-400"  },
+                    { label: "Тасалсан", val: absent,  pct: total ? Math.round((absent/total)*100) : 0,   color: "bg-red-500"   },
                   ].map(b => (
                     <div key={b.label} className="flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full shrink-0 ${b.color}`} />
