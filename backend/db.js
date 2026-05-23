@@ -2,37 +2,29 @@ const { Pool } = require("pg");
 const bcrypt   = require("bcrypt");
 require("dotenv").config();
 
-// Railway injects DATABASE_URL when Postgres service is connected via canvas.
-// Also check PGHOST (Railway PG auto-vars) and DB_HOST (manual vars).
 const dbUrl =
   process.env.DATABASE_URL ||
   process.env.POSTGRES_URL ||
-  process.env.DATABASE_PRIVATE_URL;
-
-const pgHost = process.env.PGHOST || process.env.DB_HOST;
+  process.env.DATABASE_PRIVATE_URL ||
+  process.env.PGHOST ||
+  // Railway beta runtime v2 does not inject service variables; use known internal URL
+  (process.env.RAILWAY_ENVIRONMENT
+    ? "postgresql://postgres:PpikgDVOWVaklOKUIjHBjfVQMBbNmvve@postgres.railway.internal:5432/railway"
+    : null);
 
 console.log("🔍 DB config:", dbUrl
-  ? "URL set ✓ " + dbUrl.slice(0, 30) + "..."
-  : pgHost ? `PGHOST=${pgHost}` : "no config → localhost");
+  ? "URL ✓ " + dbUrl.slice(0, 40) + "..."
+  : "localhost (local dev)");
 
 const pool = dbUrl
   ? new Pool({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } })
-  : pgHost
-    ? new Pool({
-        host:     pgHost,
-        port:     parseInt(process.env.PGPORT || process.env.DB_PORT || "5432"),
-        database: process.env.PGDATABASE || process.env.DB_NAME || "railway",
-        user:     process.env.PGUSER     || process.env.DB_USER || "postgres",
-        password: process.env.PGPASSWORD || process.env.DB_PASSWORD || "",
-        ssl:      { rejectUnauthorized: false },
-      })
-    : new Pool({
-        host:     "localhost",
-        port:     5432,
-        database: process.env.DB_NAME || "sportclub",
-        user:     process.env.DB_USER || "postgres",
-        password: String(process.env.DB_PASSWORD ?? ""),
-      });
+  : new Pool({
+      host:     process.env.DB_HOST || "localhost",
+      port:     parseInt(process.env.DB_PORT || "5432"),
+      database: process.env.DB_NAME || "sportclub",
+      user:     process.env.DB_USER || "postgres",
+      password: String(process.env.DB_PASSWORD ?? ""),
+    });
 
 pool.connect()
   .then(client => { console.log("✅ PostgreSQL-д холбогдлоо"); client.release(); })
