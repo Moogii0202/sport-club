@@ -2,12 +2,19 @@ const { Pool } = require("pg");
 const bcrypt   = require("bcrypt");
 require("dotenv").config();
 
-// Railway provides DATABASE_URL; local dev uses individual vars
-const pool = process.env.DATABASE_URL
-  ? new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
-    })
+// Pick up DATABASE_URL under any of the common names Railway may inject
+const dbUrl =
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.POSTGRESQL_URL ||
+  process.env.DATABASE_PRIVATE_URL;
+
+console.log("🔍 DB config:", dbUrl
+  ? "DATABASE_URL set ✓ (" + dbUrl.slice(0, 25) + "...)"
+  : `no URL → host=${process.env.DB_HOST || "localhost"}`);
+
+const pool = dbUrl
+  ? new Pool({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } })
   : new Pool({
       host:     process.env.DB_HOST     || "localhost",
       port:     parseInt(process.env.DB_PORT || "5432"),
