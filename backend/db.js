@@ -9,10 +9,7 @@ const dbUrl =
   process.env.POSTGRESQL_URL ||
   process.env.DATABASE_PRIVATE_URL;
 
-const dbEnvKeys = Object.keys(process.env).filter(k =>
-  k.startsWith("DB") || k.startsWith("PG") || k.includes("DATABASE") || k.includes("POSTGRES")
-);
-console.log("🔍 DB env keys available:", dbEnvKeys.length ? dbEnvKeys.join(", ") : "NONE");
+console.log("🔍 ALL env keys:", Object.keys(process.env).join(", "));
 console.log("🔍 DB config:", dbUrl
   ? "DATABASE_URL set ✓ (" + dbUrl.slice(0, 25) + "...)"
   : `no URL → host=${process.env.DB_HOST || "localhost"}`);
