@@ -2,27 +2,37 @@ const { Pool } = require("pg");
 const bcrypt   = require("bcrypt");
 require("dotenv").config();
 
-// Pick up DATABASE_URL under any of the common names Railway may inject
+// Railway injects DATABASE_URL when Postgres service is connected via canvas.
+// Also check PGHOST (Railway PG auto-vars) and DB_HOST (manual vars).
 const dbUrl =
   process.env.DATABASE_URL ||
   process.env.POSTGRES_URL ||
-  process.env.POSTGRESQL_URL ||
   process.env.DATABASE_PRIVATE_URL;
 
-console.log("🔍 ALL env keys:", Object.keys(process.env).join(", "));
+const pgHost = process.env.PGHOST || process.env.DB_HOST;
+
 console.log("🔍 DB config:", dbUrl
-  ? "DATABASE_URL set ✓ (" + dbUrl.slice(0, 25) + "...)"
-  : `no URL → host=${process.env.DB_HOST || "localhost"}`);
+  ? "URL set ✓ " + dbUrl.slice(0, 30) + "..."
+  : pgHost ? `PGHOST=${pgHost}` : "no config → localhost");
 
 const pool = dbUrl
   ? new Pool({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } })
-  : new Pool({
-      host:     process.env.DB_HOST     || "localhost",
-      port:     parseInt(process.env.DB_PORT || "5432"),
-      database: process.env.DB_NAME     || "sportclub",
-      user:     process.env.DB_USER     || "postgres",
-      password: String(process.env.DB_PASSWORD ?? ""),
-    });
+  : pgHost
+    ? new Pool({
+        host:     pgHost,
+        port:     parseInt(process.env.PGPORT || process.env.DB_PORT || "5432"),
+        database: process.env.PGDATABASE || process.env.DB_NAME || "railway",
+        user:     process.env.PGUSER     || process.env.DB_USER || "postgres",
+        password: process.env.PGPASSWORD || process.env.DB_PASSWORD || "",
+        ssl:      { rejectUnauthorized: false },
+      })
+    : new Pool({
+        host:     "localhost",
+        port:     5432,
+        database: process.env.DB_NAME || "sportclub",
+        user:     process.env.DB_USER || "postgres",
+        password: String(process.env.DB_PASSWORD ?? ""),
+      });
 
 pool.connect()
   .then(client => { console.log("✅ PostgreSQL-д холбогдлоо"); client.release(); })
