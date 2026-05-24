@@ -84,7 +84,7 @@ function SessionDetailPanel({ session, onDelete, onClose, onSaved, halls, levelD
             <InfoRow label="Түвшин"   value={session.level} />
             <InfoRow label="Гараг"    value={session.day} />
             <InfoRow label="Цаг"      value={`${session.start} – ${session.end}`} />
-            <InfoRow label="Байршил"  value={session.location ? `📍 ${session.location}` : null} />
+            <InfoRow label="Байршил"  value={session.location || null} />
             <InfoRow label="Эхлэх огноо"  value={session.startDate} />
             <InfoRow label="Дуусах огноо" value={session.endDate} />
             <InfoRow label="Дүүргэлт" value={session.maxCapacity ? `${session.maxCapacity} хүн` : null} />
@@ -497,7 +497,7 @@ export default function ScheduleTab({ onAttendance }) {
                         ${isOpen ? `ring-2 ring-orange-500/60 ${a.border} ${a.bg}` : `${a.border} ${a.bg} hover:brightness-125`}`}>
                       <p className={`text-[10px] font-bold ${a.text}`}>{s.start}–{s.end}</p>
                       <p className="text-white text-[10px] font-semibold leading-tight mt-0.5">{s.group}</p>
-                      <p className="text-gray-500 text-[9px] mt-0.5 truncate">📍{s.location}</p>
+                      <p className="text-gray-500 text-[9px] mt-0.5 truncate flex items-center gap-0.5"><svg className="w-2 h-2 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>{s.location}</p>
                       <div className={`flex items-center gap-0.5 mt-1 text-[9px] font-bold
                         ${s.enrolledCount >= s.maxCapacity ? "text-red-400" : s.enrolledCount >= s.maxCapacity * 0.8 ? "text-yellow-400" : a.text}`}>
                         <svg className="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -816,7 +816,7 @@ export default function ScheduleTab({ onAttendance }) {
         <div className="p-4 space-y-3">
           {(sessionsByIdx[todayIdx] || []).filter(s => inRange(s, toDateStr(today))).length === 0 ? (
             <div className="text-center py-10 text-gray-600">
-              <p className="text-2xl mb-2">📅</p>
+              <svg className="w-8 h-8 mx-auto mb-2 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
               <p className="text-sm">{loading ? "Уншиж байна..." : "Өнөөдөр хуваарь байхгүй"}</p>
             </div>
           ) : (sessionsByIdx[todayIdx] || []).filter(s => inRange(s, toDateStr(today)))

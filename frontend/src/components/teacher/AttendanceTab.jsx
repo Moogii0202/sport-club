@@ -116,10 +116,16 @@ export default function AttendanceTab({ initialSessionId: initialScheduleId }) {
 
       {sessionInfo && (
         <div className={`rounded-2xl border p-4 flex items-center gap-4 ${accentCls[schedAccent].border} ${accentCls[schedAccent].bg}`}>
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${accentCls[schedAccent].text} text-xl`}>📋</div>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${accentCls[schedAccent].text}`}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          </div>
           <div className="flex-1">
             <p className={`font-bold text-sm ${accentCls[schedAccent].text}`}>{sessionInfo.level} · {sessionInfo.className}</p>
-            <p className="text-gray-500 text-xs">🕘 {sessionInfo.startTime}–{sessionInfo.endTime} · 📍 {sessionInfo.location || "—"} · {sessionInfo.date}</p>
+            <p className="text-gray-500 text-xs flex items-center gap-2 flex-wrap">
+              <span className="flex items-center gap-1"><svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" d="M12 6v6l4 2"/></svg>{sessionInfo.startTime}–{sessionInfo.endTime}</span>
+              <span className="flex items-center gap-1"><svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>{sessionInfo.location || "—"}</span>
+              · {sessionInfo.date}
+            </p>
           </div>
           <div className="text-right">
             <p className="text-white font-bold text-lg">{markedCount}<span className="text-gray-600 text-sm font-normal">/{members.length}</span></p>

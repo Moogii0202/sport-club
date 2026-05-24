@@ -108,10 +108,10 @@ export default function StatsTab() {
         <div className="divide-y divide-white/5">
           {topPerformers.map((m, i) => {
             const a      = accentCls[groupAccent[m.group]];
-            const medals = ["🥇", "🥈", "🥉"];
+            const medalColors = ["text-yellow-400", "text-gray-300", "text-amber-600"];
             return (
               <div key={m.id} className="px-6 py-4 flex items-center gap-4">
-                <span className="text-xl shrink-0">{medals[i]}</span>
+                <svg className={`w-5 h-5 shrink-0 ${medalColors[i]}`} fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
                 <MemberAvatar m={m} size="sm" />
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-semibold text-sm truncate">{m.lastName}. {m.firstName}</p>

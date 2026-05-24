@@ -693,7 +693,7 @@ function ContactSection() {
     withCoords.forEach(h => {
       const imgInner = h.image
         ? `<img src="${h.image}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`
-        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px">🏛️</div>`;
+        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1a1a1a"><svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='#6b7280' stroke-width='1.5' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' d='M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z'/><path stroke-linecap='round' stroke-linejoin='round' d='M9 21V12h6v9'/></svg></div>`;
 
       const icon = L.divIcon({
         html: `
@@ -713,11 +713,11 @@ function ContactSection() {
                     overflow:hidden;width:210px;box-shadow:0 12px 32px rgba(0,0,0,.8)">
           ${h.image
             ? `<img src="${h.image}" style="width:100%;height:118px;object-fit:cover;display:block" />`
-            : `<div style="height:60px;display:flex;align-items:center;justify-content:center;font-size:28px;background:#1a1a1a">🏛️</div>`}
+            : `<div style="height:60px;display:flex;align-items:center;justify-content:center;background:#1a1a1a"><svg xmlns='http://www.w3.org/2000/svg' width='28' height='28' fill='none' stroke='#6b7280' stroke-width='1.5' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' d='M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z'/><path stroke-linecap='round' stroke-linejoin='round' d='M9 21V12h6v9'/></svg></div>`}
           <div style="padding:11px 13px">
             <div style="color:#fff;font-weight:700;font-size:13px;line-height:1.3;margin-bottom:5px">${h.name}</div>
-            ${addr   ? `<div style="color:#9ca3af;font-size:11px;margin-bottom:3px">📍 ${addr}</div>` : ""}
-            ${h.phone ? `<div style="color:#9ca3af;font-size:11px;margin-bottom:6px">📞 ${h.phone}</div>` : ""}
+            ${addr   ? `<div style="color:#9ca3af;font-size:11px;margin-bottom:3px;display:flex;align-items:center;gap:3px"><svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='none' stroke='#9ca3af' stroke-width='2' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' d='M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z'/><path stroke-linecap='round' stroke-linejoin='round' d='M15 11a3 3 0 11-6 0 3 3 0 016 0z'/></svg>${addr}</div>` : ""}
+            ${h.phone ? `<div style="color:#9ca3af;font-size:11px;margin-bottom:6px;display:flex;align-items:center;gap:3px"><svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='none' stroke='#9ca3af' stroke-width='2' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' d='M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z'/></svg>${h.phone}</div>` : ""}
             ${h.mapUrl
               ? `<a href="${h.mapUrl}" target="_blank"
                     style="color:#f97316;font-size:11px;font-weight:600;text-decoration:none">
@@ -795,19 +795,21 @@ function ContactSection() {
                   {h.image
                     ? <img src={h.image} alt={h.name}
                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    : <div className="w-full h-full flex items-center justify-center text-gray-700 text-4xl">🏛️</div>}
+                    : <div className="w-full h-full flex items-center justify-center"><svg className="w-10 h-10 text-gray-700" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path strokeLinecap="round" strokeLinejoin="round" d="M9 21V12h6v9"/></svg></div>}
                 </div>
                 <div className="p-4">
                   <p className="text-white font-bold text-sm">{h.name}</p>
                   {(h.district || h.subDistrict) && (
-                    <p className="text-gray-500 text-xs mt-1">
-                      📍 {[h.district && `${h.district} дүүрэг`, h.subDistrict].filter(Boolean).join(", ")}
+                    <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">
+                      <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                      {[h.district && `${h.district} дүүрэг`, h.subDistrict].filter(Boolean).join(", ")}
                     </p>
                   )}
                   {h.phone && (
                     <a href={`tel:${h.phone}`}
-                       className="text-gray-500 text-xs mt-1 block hover:text-gray-300 transition">
-                      📞 {h.phone}
+                       className="text-gray-500 text-xs mt-1 flex items-center gap-1 hover:text-gray-300 transition">
+                      <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                      {h.phone}
                     </a>
                   )}
                   {h.mapUrl && (
@@ -825,14 +827,14 @@ function ContactSection() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              { icon: "📍", label: "Хаяг",          value: "Улаанбаатар, Чингэлтэй дүүрэг" },
-              { icon: "📞", label: "Утас",           value: "9911-2233" },
-              { icon: "✉️", label: "Имэйл",          value: "info@volleyball.mn" },
-              { icon: "⏰", label: "Цагийн хуваарь", value: "Даваа–Бямба 09:00–21:00" },
+              { icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>, label: "Хаяг",          value: "Улаанбаатар, Чингэлтэй дүүрэг" },
+              { icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>, label: "Утас",           value: "9911-2233" },
+              { icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>, label: "Имэйл",          value: "info@volleyball.mn" },
+              { icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2"/></svg>, label: "Цагийн хуваарь", value: "Даваа–Бямба 09:00–21:00" },
             ].map(item => (
               <div key={item.label}
                 className="bg-[#111111] rounded-2xl border border-white/5 p-5 flex items-start gap-4">
-                <span className="text-2xl shrink-0">{item.icon}</span>
+                <span className="text-orange-400 shrink-0 mt-0.5">{item.icon}</span>
                 <div>
                   <p className="text-gray-600 text-[10px] uppercase tracking-widest mb-0.5">{item.label}</p>
                   <p className="text-white text-sm font-medium">{item.value}</p>

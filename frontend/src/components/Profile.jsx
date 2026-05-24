@@ -80,8 +80,8 @@ function SessionCard({ s, compact = false }) {
       <p className={`text-white text-xs font-semibold ${cancelled ? "line-through text-gray-500" : ""}`}>{s.group}</p>
       {!compact && (
         <>
-          <p className="text-gray-500 text-xs mt-1">📍 {s.location}</p>
-          <p className="text-gray-500 text-xs">👤 {s.coach}</p>
+          <p className="text-gray-500 text-xs mt-1 flex items-center gap-1"><svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>{s.location}</p>
+          <p className="text-gray-500 text-xs flex items-center gap-1"><svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>{s.coach}</p>
         </>
       )}
     </div>
@@ -122,7 +122,7 @@ function DayView() {
                 {s.start} – {s.end}
               </p>
               <p className="text-white text-xs font-semibold mt-0.5">{s.group}</p>
-              <p className="text-gray-500 text-[11px]">📍 {s.location}</p>
+              <p className="text-gray-500 text-[11px] flex items-center gap-1"><svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>{s.location}</p>
             </div>
           );
         })}

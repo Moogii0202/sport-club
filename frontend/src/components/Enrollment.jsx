@@ -695,9 +695,9 @@ function Step3({ levels, user, levelName, dbSlots, selectedSlotIds, notes, setNo
 
 /* ── Step 4: Төлбөр хийх ── */
 const PAYMENT_METHODS = [
-  { id: "qpay",      label: "QPay",        icon: "📱", desc: "QR уншуулах" },
-  { id: "socialpay", label: "SocialPay",   icon: "💳", desc: "Хаан банк" },
-  { id: "cash",      label: "Бэлэн мөнгө", icon: "💵", desc: "Заал дээр" },
+  { id: "qpay",      label: "QPay",        icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>, desc: "QR уншуулах" },
+  { id: "socialpay", label: "SocialPay",   icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>, desc: "Хаан банк" },
+  { id: "cash",      label: "Бэлэн мөнгө", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>, desc: "Заал дээр" },
 ];
 
 function Step4({ levels, levelName, dbSlots, selectedSlotIds, paymentMethod, setPaymentMethod, onSubmit, onBack, loading, error }) {
@@ -760,7 +760,7 @@ function Step4({ levels, levelName, dbSlots, selectedSlotIds, paymentMethod, set
         <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-6 mb-8 space-y-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/20
-                            flex items-center justify-center shrink-0 text-xl">💳</div>
+                            flex items-center justify-center shrink-0"><svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
             <div>
               <p className="text-white font-black text-sm">SocialPay — Хаан банк</p>
               <p className="text-gray-500 text-xs">Доорх данс руу шилжүүлэнэ үү</p>

@@ -72,8 +72,8 @@ function SessionCard({ s, compact = false }) {
       <p className={`text-xs font-semibold ${cancelled ? "text-gray-500 line-through" : "text-white"}`}>{s.group}</p>
       {!compact && (
         <>
-          <p className="text-gray-500 text-[11px] mt-1">📍 {s.location}</p>
-          <p className="text-gray-500 text-[11px]">👤 {s.coach}</p>
+          <p className="text-gray-500 text-[11px] mt-1 flex items-center gap-1"><svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>{s.location}</p>
+          <p className="text-gray-500 text-[11px] flex items-center gap-1"><svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>{s.coach}</p>
         </>
       )}
     </div>
@@ -647,7 +647,10 @@ function PersonalSchedule({ user }) {
                     <p className="text-gray-400 text-xs mt-0.5">
                       {s.date} · {s.start}–{s.end} · {s.group}
                     </p>
-                    <p className="text-gray-500 text-xs">📍 {s.location} · 👤 {s.coach}</p>
+                    <p className="text-gray-500 text-xs flex items-center gap-2 flex-wrap">
+                      <span className="flex items-center gap-1"><svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>{s.location}</span>
+                      · <span className="flex items-center gap-1"><svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>{s.coach}</span>
+                    </p>
                   </div>
                 </div>
                 <button onClick={() => setDismissed(d => [...d, s.id])}
@@ -699,7 +702,7 @@ function PersonalSchedule({ user }) {
           <div className="p-4 space-y-3">
             {sessions.filter(s => s.dateIdx === todayIdx && inRange(s, toDateStr(today))).length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-2xl mb-2">📅</p>
+                <svg className="w-8 h-8 mx-auto mb-2 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 <p className="text-gray-600 text-sm">Өнөөдөр тренинг байхгүй</p>
               </div>
             ) : sessions
@@ -794,7 +797,7 @@ function PublicSchedule() {
                           ${isFull ? "border-white/5 bg-[#1a1a1a] opacity-40" : `${ac.border} ${ac.bg}`}`}>
                         <p className={`text-xs font-bold mb-1 ${isFull ? "text-gray-500" : ac.text}`}>{slot.time}</p>
                         <p className="text-gray-400 text-xs leading-tight mb-1">{slot.coach}</p>
-                        <p className="text-gray-600 text-xs">📍 {slot.location}</p>
+                        <p className="text-gray-600 text-xs flex items-center gap-1"><svg className="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>{slot.location}</p>
                         <p className={`text-xs mt-1.5 font-semibold ${isFull ? "text-red-400" : "text-green-400"}`}>
                           {isFull ? "Дүүрсэн" : `${slot.spots} байр`}
                         </p>
@@ -809,7 +812,7 @@ function PublicSchedule() {
 
         {filtered.length === 0 && (
           <div className="text-center py-12 text-gray-600">
-            <p className="text-3xl mb-3">📅</p>
+            <svg className="w-8 h-8 mx-auto mb-3 text-gray-600" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             <p className="text-sm">Сонгосон бүлгийн хуваарь байхгүй байна</p>
           </div>
         )}

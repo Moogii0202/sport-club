@@ -21,7 +21,7 @@ export default function Table({
   rows      = [],
   loading   = false,
   emptyText = "Өгөгдөл байхгүй",
-  emptyIcon = "📋",
+  emptyIcon = null,
   renderCell,
   rowKey = "id",
 }) {
@@ -59,7 +59,7 @@ export default function Table({
           ) : rows.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className="text-center py-12 text-gray-600">
-                {emptyIcon && <p className="text-2xl mb-2">{emptyIcon}</p>}
+                {emptyIcon && <div className="flex justify-center mb-2">{emptyIcon}</div>}
                 <p className="text-sm">{emptyText}</p>
               </td>
             </tr>

@@ -1,15 +1,82 @@
-const express = require("express");
-const bcrypt  = require("bcrypt");
-const jwt     = require("jsonwebtoken");
-const db      = require("./db");
+const express    = require("express");
+const bcrypt     = require("bcrypt");
+const jwt        = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
+const db         = require("./db");
 
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || "fallback-dev-secret-change-in-production";
 
+// ── OTP in-memory store ─────────────────────────────────────────────────────
+const otpStore = new Map(); // phone → { otp, expiry, channel }
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of otpStore) if (now > v.expiry) otpStore.delete(k);
+}, 60_000);
+
+async function sendOtpEmail(to, otp) {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.log(`[OTP Email] To: ${to}  Code: ${otp}`);
+    return;
+  }
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+  });
+  await transporter.sendMail({
+    from: `"Volleyball Club" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: "Бүртгэлийн баталгаажуулах код",
+    html: `
+      <div style="font-family:sans-serif;max-width:420px;margin:0 auto;background:#111;border-radius:16px;padding:32px">
+        <h2 style="color:#f97316;margin:0 0 16px">Баталгаажуулах код</h2>
+        <p style="color:#9ca3af;margin:0 0 20px">Таны нэг удаагийн код:</p>
+        <div style="font-size:40px;font-weight:800;letter-spacing:12px;color:#f97316;
+                    background:#1a1a1a;border-radius:12px;text-align:center;padding:20px 0">
+          ${otp}
+        </div>
+        <p style="color:#6b7280;font-size:12px;margin:16px 0 0">Код 5 минутын дараа хүчингүй болно.</p>
+      </div>`,
+  });
+}
+
+// ── POST /otp/send ──────────────────────────────────────────────────────────
+router.post("/otp/send", async (req, res) => {
+  let { channel, phone, email } = req.body;
+  phone = phone?.replace(/[\s\-]/g, "");
+
+  if (!phone || !/^\d{8}$/.test(phone))
+    return res.status(400).json({ error: "8 оронтой утасны дугаар оруулна уу" });
+  if (channel === "email" && !email?.includes("@"))
+    return res.status(400).json({ error: "И-мэйл хаяг буруу байна" });
+
+  try {
+    const existing = await db.query(`SELECT id FROM users WHERE phone = $1`, [phone]);
+    if (existing.rows.length > 0)
+      return res.status(400).json({ error: "Энэ утасны дугаар бүртгэлтэй байна" });
+
+    const otp    = Math.floor(10000 + Math.random() * 90000).toString();
+    const expiry = Date.now() + 5 * 60 * 1000;
+    otpStore.set(phone, { otp, expiry, channel });
+
+    if (channel === "email" && email) {
+      await sendOtpEmail(email, otp);
+    } else {
+      console.log(`[OTP SMS] ${phone} → ${otp}`);
+    }
+
+    res.json({ message: "OTP илгээгдлээ" });
+  } catch (err) {
+    console.error("OTP send error:", err.message);
+    res.status(500).json({ error: "Серверийн алдаа" });
+  }
+});
+
 // ── Register ──────────────────────────────────────────────────────────────
 router.post("/register", async (req, res) => {
-  let { lastName, firstName, phone, password, email, birthDate, gender } = req.body;
+  let { lastName, firstName, phone, password, email, birthDate, gender, otp } = req.body;
 
   phone = phone?.replace(/[\s\-]/g, "");
 
@@ -20,10 +87,24 @@ router.post("/register", async (req, res) => {
   if (password.length < 6)
     return res.status(400).json({ error: "Нууц үг хамгийн багадаа 6 тэмдэгт байна" });
 
+  // Verify OTP
+  if (!otp)
+    return res.status(400).json({ error: "Баталгаажуулах код оруулна уу" });
+
+  const stored = otpStore.get(phone);
+  if (!stored)
+    return res.status(400).json({ error: "Баталгаажуулах код илгээгдээгүй байна. Дахин авна уу" });
+  if (Date.now() > stored.expiry) {
+    otpStore.delete(phone);
+    return res.status(400).json({ error: "Кодын хугацаа дууссан. Дахин код авна уу" });
+  }
+  if (stored.otp !== otp)
+    return res.status(400).json({ error: "Код буруу байна. Дахин оролдоно уу" });
+
+  otpStore.delete(phone);
+
   try {
-    const existing = await db.query(
-      `SELECT id FROM users WHERE phone = $1`, [phone]
-    );
+    const existing = await db.query(`SELECT id FROM users WHERE phone = $1`, [phone]);
     if (existing.rows.length > 0)
       return res.status(400).json({ error: "Энэ утасны дугаар бүртгэлтэй байна" });
 
