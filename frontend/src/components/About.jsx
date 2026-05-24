@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-const API_BASE = `http://${window.location.hostname}:4000/api`;
+const API_BASE = process.env.REACT_APP_API_URL || `http://${window.location.hostname}:4000/api`;
 const CLUB_IMAGE =
   "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQssg52k8b3SDmGgYDqZeDNPybl5zLDXDQt6g&s";
 const HERO_IMAGE    = "/volleyball-hero.jpg";
