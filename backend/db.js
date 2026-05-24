@@ -1,6 +1,7 @@
 const { Pool } = require("pg");
 const bcrypt   = require("bcrypt");
-require("dotenv").config();
+const path     = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const dbUrl =
   process.env.DATABASE_PUBLIC_URL ||
@@ -9,8 +10,8 @@ const dbUrl =
   process.env.DATABASE_PRIVATE_URL ||
   null;
 
-const allKeys = Object.keys(process.env).sort();
-console.log("🔍 ALL env keys:", allKeys.join(", "));
+console.log("🔍 DATABASE_URL:", process.env.DATABASE_URL ? "SET" : "NOT SET");
+console.log("🔍 RAILWAY:", process.env.RAILWAY_ENVIRONMENT || "local");
 console.log("🔍 DB config:", dbUrl
   ? "URL ✓ " + dbUrl.slice(0, 40) + "..."
   : process.env.PGHOST
