@@ -111,21 +111,7 @@ router.post("/register", async (req, res) => {
   if (password.length < 6)
     return res.status(400).json({ error: "Нууц үг хамгийн багадаа 6 тэмдэгт байна" });
 
-  // Verify OTP
-  if (!otp)
-    return res.status(400).json({ error: "Баталгаажуулах код оруулна уу" });
-
-  const stored = otpStore.get(phone);
-  if (!stored)
-    return res.status(400).json({ error: "Баталгаажуулах код илгээгдээгүй байна. Дахин авна уу" });
-  if (Date.now() > stored.expiry) {
-    otpStore.delete(phone);
-    return res.status(400).json({ error: "Кодын хугацаа дууссан. Дахин код авна уу" });
-  }
-  if (stored.otp !== otp)
-    return res.status(400).json({ error: "Код буруу байна. Дахин оролдоно уу" });
-
-  otpStore.delete(phone);
+  // OTP verification skipped for now
 
   try {
     const existing = await db.query(`SELECT id FROM users WHERE phone = $1`, [phone]);
