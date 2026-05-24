@@ -257,6 +257,21 @@ async function initDB() {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS halls (
+        id            SERIAL PRIMARY KEY,
+        name          TEXT NOT NULL,
+        district      TEXT,
+        "subDistrict" TEXT,
+        phone         TEXT,
+        "mapUrl"      TEXT,
+        image         TEXT,
+        lat           DOUBLE PRECISION,
+        lng           DOUBLE PRECISION,
+        "createdAt"   TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS levels (
         id          SERIAL PRIMARY KEY,
         name        TEXT UNIQUE NOT NULL,
