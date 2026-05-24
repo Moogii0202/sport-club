@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "DATABASE_URL=postgresql://postgres:PpikgDVOWVaklOKUIjHBjfVQMBbNmvve@postgres.railway.internal:5432/railway node backend/server.js",
+    "startCommand": "sh start.sh",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   }
