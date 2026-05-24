@@ -85,13 +85,13 @@ router.post("/otp/send", async (req, res) => {
     const expiry = Date.now() + 5 * 60 * 1000;
     otpStore.set(phone, { otp, expiry, channel });
 
-    if (channel === "email" && email) {
-      await sendOtpEmail(email, otp);
-    } else {
-      await sendOtpSms(phone, otp);
-    }
-
     res.json({ message: "OTP илгээгдлээ" });
+
+    if (channel === "email" && email) {
+      sendOtpEmail(email, otp).catch(err => console.error("Email send error:", err.message));
+    } else {
+      sendOtpSms(phone, otp).catch(err => console.error("SMS send error:", err.message));
+    }
   } catch (err) {
     console.error("OTP send error:", err.message);
     res.status(500).json({ error: "Серверийн алдаа" });
