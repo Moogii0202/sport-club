@@ -2,6 +2,7 @@ const express    = require("express");
 const bcrypt     = require("bcrypt");
 const jwt        = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
+const twilio     = require("twilio");
 const db         = require("./db");
 
 const router = express.Router();
@@ -16,6 +17,29 @@ setInterval(() => {
   for (const [k, v] of otpStore) if (now > v.expiry) otpStore.delete(k);
 }, 60_000);
 
+// ── SMS via Twilio ──────────────────────────────────────────────────────────
+async function sendOtpSms(phone, otp) {
+  const sid   = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  const from  = process.env.TWILIO_PHONE_NUMBER;
+
+  if (!sid || !token || !from) {
+    console.log(`[OTP SMS — no Twilio config] ${phone} → ${otp}`);
+    return;
+  }
+
+  const client = twilio(sid, token);
+  // Mongolian numbers: add +976 prefix
+  const to = phone.startsWith("+") ? phone : `+976${phone}`;
+  await client.messages.create({
+    body: `Volleyball Club бүртгэлийн код: ${otp}\n5 минутын дотор ашиглана уу.`,
+    from,
+    to,
+  });
+  console.log(`[OTP SMS sent] ${to}`);
+}
+
+// ── Email via Gmail ─────────────────────────────────────────────────────────
 async function sendOtpEmail(to, otp) {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.log(`[OTP Email] To: ${to}  Code: ${otp}`);
@@ -64,7 +88,7 @@ router.post("/otp/send", async (req, res) => {
     if (channel === "email" && email) {
       await sendOtpEmail(email, otp);
     } else {
-      console.log(`[OTP SMS] ${phone} → ${otp}`);
+      await sendOtpSms(phone, otp);
     }
 
     res.json({ message: "OTP илгээгдлээ" });
