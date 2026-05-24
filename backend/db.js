@@ -9,6 +9,10 @@ const dbUrl =
   process.env.DATABASE_PRIVATE_URL ||
   null;
 
+const pgKeys = Object.keys(process.env).filter(k =>
+  /^(DATABASE|POSTGRES|PG|DB_)/i.test(k)
+);
+console.log("🔍 PG env keys found:", pgKeys.length ? pgKeys.join(", ") : "NONE");
 console.log("🔍 DB config:", dbUrl
   ? "URL ✓ " + dbUrl.slice(0, 40) + "..."
   : process.env.PGHOST
