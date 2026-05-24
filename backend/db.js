@@ -257,6 +257,19 @@ async function initDB() {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS leave_requests (
+        id          SERIAL PRIMARY KEY,
+        "userId"    INTEGER NOT NULL REFERENCES users(id),
+        "classId"   INTEGER NOT NULL REFERENCES class_groups(id),
+        "scheduleId" INTEGER REFERENCES schedule(id),
+        date        TEXT NOT NULL,
+        reason      TEXT,
+        status      TEXT DEFAULT 'pending',
+        "createdAt" TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS halls (
         id            SERIAL PRIMARY KEY,
         name          TEXT NOT NULL,
