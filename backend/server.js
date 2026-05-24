@@ -2,6 +2,10 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
+process.on("unhandledRejection", (reason) => {
+  console.error("⚠️ Unhandled rejection (server kept running):", reason?.message || reason);
+});
+
 const authRoutes       = require("./auth");
 const profileRoutes    = require("./profile");
 const enrollmentRoutes = require("./enrollments");

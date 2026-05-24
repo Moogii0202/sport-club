@@ -11,10 +11,21 @@ const dbUrl =
 
 console.log("🔍 DB config:", dbUrl
   ? "URL ✓ " + dbUrl.slice(0, 40) + "..."
+  : process.env.PGHOST
+  ? `PGHOST=${process.env.PGHOST}:${process.env.PGPORT || 5432}`
   : "localhost (local dev)");
 
 const pool = dbUrl
   ? new Pool({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } })
+  : process.env.PGHOST
+  ? new Pool({
+      host:     process.env.PGHOST,
+      port:     parseInt(process.env.PGPORT || "5432"),
+      database: process.env.PGDATABASE || process.env.DB_NAME || "sportclub",
+      user:     process.env.PGUSER     || process.env.DB_USER || "postgres",
+      password: process.env.PGPASSWORD || process.env.DB_PASSWORD || "",
+      ssl:      { rejectUnauthorized: false },
+    })
   : new Pool({
       host:     process.env.DB_HOST || "localhost",
       port:     parseInt(process.env.DB_PORT || "5432"),
@@ -28,8 +39,9 @@ pool.connect()
   .catch(err  => console.error("❌ DB холболтын алдаа:", err.message));
 
 async function initDB() {
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id              SERIAL PRIMARY KEY,
@@ -344,7 +356,7 @@ async function initDB() {
   } catch (err) {
     console.error("❌ initDB алдаа:", err.message);
   } finally {
-    client.release();
+    if (client) client.release();
   }
 }
 
