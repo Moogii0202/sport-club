@@ -181,9 +181,9 @@ function Sidebar({ user, onLogout, collapsed, onToggle }) {
             <p className="text-gray-600 text-xs uppercase tracking-widest px-3 mb-2">Үндсэн цэс</p>
           )}
           <NavItem to="/profile"    icon={<ProfileIcon />}    label="Профайл"           collapsed={collapsed} />
-          <NavItem to="/schedule"   icon={<ScheduleIcon />}   label="Хуваарь"           collapsed={collapsed} />
-          <NavItem to="/attendance" icon={<AttendanceIcon />} label="Ирц"               collapsed={collapsed} />
-          <NavItem to="/leave"      icon={<LeaveIcon />}      label="Чөлөөний хүсэлт"  collapsed={collapsed} />
+          {role === "player" && <NavItem to="/schedule"   icon={<ScheduleIcon />}   label="Хуваарь"           collapsed={collapsed} />}
+          {role === "player" && <NavItem to="/attendance" icon={<AttendanceIcon />} label="Ирц"               collapsed={collapsed} />}
+          {role === "player" && <NavItem to="/leave"      icon={<LeaveIcon />}      label="Чөлөөний хүсэлт"  collapsed={collapsed} />}
           <NavItem to="/enrollment" icon={<EnrollIcon />}     label="Элсэлт"            collapsed={collapsed} />
 
           {role === "admin" && (
