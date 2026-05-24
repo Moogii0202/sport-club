@@ -62,21 +62,10 @@ export default function Register() {
     return true;
   };
 
-  const handleFormNext = async (e) => {
+  const handleFormNext = (e) => {
     e.preventDefault();
     setError("");
-    if (!validate()) return;
-    setLoading(true);
-    try {
-      const { confirmPassword, ...sendData } = form;
-      await api.post("/register", { ...sendData });
-      setStep("success");
-      setTimeout(() => navigate("/login"), 2500);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    if (validate()) setStep("channel");
   };
 
   // ── Send OTP ───────────────────────────────────────────────────────────────
@@ -124,7 +113,6 @@ export default function Register() {
   // ── Final register ─────────────────────────────────────────────────────────
   const handleRegister = async () => {
     const code = otp.join("");
-    if (code.length < 5) return setError("5 оронтой код оруулна уу");
     setLoading(true); setError("");
     try {
       const { confirmPassword, ...sendData } = form;
@@ -263,13 +251,11 @@ export default function Register() {
                 </div>
               </div>
 
-              <button type="submit" disabled={loading}
+              <button type="submit"
                 className="w-full py-3.5 bg-orange-500 text-white font-semibold rounded-xl
                            hover:bg-orange-600 hover:shadow-lg hover:shadow-orange-500/20
-                           transition-all mt-2 disabled:opacity-50
-                           flex items-center justify-center gap-2">
-                {loading && <Spinner />}
-                {loading ? "Бүртгэж байна..." : "Бүртгүүлэх"}
+                           transition-all mt-2">
+                Бүртгүүлэх
               </button>
             </form>
           )}
@@ -377,7 +363,7 @@ export default function Register() {
               </div>
 
               {/* Confirm button */}
-              <button onClick={handleRegister} disabled={loading || otp.join("").length < 5}
+              <button onClick={handleRegister} disabled={loading}
                 className="w-full py-3.5 bg-orange-500 text-white font-semibold rounded-xl
                            hover:bg-orange-600 transition-all disabled:opacity-50
                            flex items-center justify-center gap-2">
