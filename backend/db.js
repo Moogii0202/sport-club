@@ -9,10 +9,11 @@ const dbUrl =
   process.env.DATABASE_PRIVATE_URL ||
   null;
 
-const pgKeys = Object.keys(process.env).filter(k =>
-  /^(DATABASE|POSTGRES|PG|DB_)/i.test(k)
-);
-console.log("🔍 PG env keys found:", pgKeys.length ? pgKeys.join(", ") : "NONE");
+const allKeys = Object.keys(process.env).sort();
+console.log("🔍 Total env vars:", allKeys.length);
+console.log("🔍 DATABASE_URL direct:", process.env.DATABASE_URL ? "SET (" + process.env.DATABASE_URL.slice(0, 30) + "...)" : "NOT SET");
+const pgKeys = allKeys.filter(k => /url|host|port|pg|postgres|database|db/i.test(k));
+console.log("🔍 DB-related keys:", pgKeys.length ? pgKeys.join(", ") : "NONE");
 console.log("🔍 DB config:", dbUrl
   ? "URL ✓ " + dbUrl.slice(0, 40) + "..."
   : process.env.PGHOST
