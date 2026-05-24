@@ -3,14 +3,11 @@ const bcrypt   = require("bcrypt");
 require("dotenv").config();
 
 const dbUrl =
+  process.env.DATABASE_PUBLIC_URL ||
   process.env.DATABASE_URL ||
   process.env.POSTGRES_URL ||
   process.env.DATABASE_PRIVATE_URL ||
-  process.env.PGHOST ||
-  // Railway beta runtime v2 does not inject service variables; use known internal URL
-  (process.env.RAILWAY_ENVIRONMENT
-    ? "postgresql://postgres:PpikgDVOWVaklOKUIjHBjfVQMBbNmvve@postgres.railway.internal:5432/railway"
-    : null);
+  null;
 
 console.log("🔍 DB config:", dbUrl
   ? "URL ✓ " + dbUrl.slice(0, 40) + "..."
