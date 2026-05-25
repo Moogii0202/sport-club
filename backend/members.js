@@ -8,7 +8,7 @@ const router = express.Router();
 router.get("/", authenticateToken, requireRole("coach"), async (req, res) => {
   try {
     const result = await db.query(`
-      SELECT
+      SELECT DISTINCT ON (u.id, cg.id)
         u.id,
         u."firstName",
         u."lastName",
@@ -71,7 +71,7 @@ router.get("/", authenticateToken, requireRole("coach"), async (req, res) => {
       JOIN class_groups cg ON e."classId" = cg.id
       WHERE cg."coachId" = $1
         AND e.status = 'approved'
-      ORDER BY cg.level, u."lastName", u."firstName"
+      ORDER BY u.id, cg.id, cg.level, u."lastName", u."firstName"
     `, [req.user.id]);
     res.json(result.rows);
   } catch (err) {
