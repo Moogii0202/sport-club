@@ -78,7 +78,8 @@ router.get("/my", authenticateToken, async (req, res) => {
 router.get("/approved", authenticateToken, requireRole("admin"), async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT e.id, e."userId", e."classId",
+      `SELECT DISTINCT ON (e."userId", e."classId")
+              e.id, e."userId", e."classId",
               e."submittedAt", e."reviewedAt",
               u."firstName", u."lastName", u.phone, u.email, u."profileImage",
               cg.name        AS "className",
@@ -91,7 +92,7 @@ router.get("/approved", authenticateToken, requireRole("admin"), async (req, res
        JOIN class_groups cg  ON e."classId"  = cg.id
        LEFT JOIN users coach ON cg."coachId" = coach.id
        WHERE e.status = 'approved'
-       ORDER BY cg.level, u."lastName", u."firstName"`
+       ORDER BY e."userId", e."classId", e."reviewedAt" DESC`
     );
     res.json(result.rows);
   } catch (err) {
