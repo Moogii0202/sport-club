@@ -277,8 +277,10 @@ router.get("/reports/attendance", authenticateToken, requireRole("admin"), async
         COUNT(a.id) FILTER (WHERE a.status = 'absent')                     AS absent
       FROM training_sessions ts
       JOIN class_groups cg ON ts."classId" = cg.id
-      JOIN enrollments e   ON e."classId"  = cg.id AND e.status = 'approved'
-      JOIN attendance a    ON a."sessionId" = ts.id AND a."userId" = e."userId"
+      JOIN (
+        SELECT DISTINCT "userId", "classId" FROM enrollments WHERE status = 'approved'
+      ) e ON e."classId" = cg.id
+      JOIN attendance a ON a."sessionId" = ts.id AND a."userId" = e."userId"
       WHERE ts.date::date >= CURRENT_DATE - ($1::int * INTERVAL '1 month')
       GROUP BY ts.id, ts.date::date, cg.level
       ORDER BY cg.level, ts.date::date
@@ -295,14 +297,17 @@ router.get("/reports/attendance", authenticateToken, requireRole("admin"), async
         COUNT(a.id) FILTER (WHERE a.status = 'present')         AS present,
         COUNT(a.id) FILTER (WHERE a.status = 'late')            AS late,
         COUNT(a.id) FILTER (WHERE a.status = 'absent')          AS absent
-      FROM enrollments e
+      FROM (
+        SELECT DISTINCT ON ("userId", "classId") "userId", "classId"
+        FROM enrollments WHERE status = 'approved'
+        ORDER BY "userId", "classId"
+      ) e
       JOIN users u              ON e."userId"  = u.id
       JOIN class_groups cg      ON e."classId" = cg.id
       JOIN training_sessions ts ON ts."classId" = cg.id
         AND ts.date::date >= CURRENT_DATE - ($1::int * INTERVAL '1 month')
         AND EXISTS (SELECT 1 FROM attendance WHERE "sessionId" = ts.id)
       LEFT JOIN attendance a ON a."sessionId" = ts.id AND a."userId" = u.id
-      WHERE e.status = 'approved'
       GROUP BY u.id, u."firstName", u."lastName", cg.id, cg.level
       ORDER BY cg.level, u."lastName", u."firstName"
     `, [months]);
